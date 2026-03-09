@@ -664,7 +664,29 @@ function calculateResults() {
         return; // Fin de la función, la página no se altera
     }
 
-    // 2. Si hay datos, validamos qué falta
+    // 2. BLINDAJE DE FECHAS: Evitar viajes en el tiempo
+    const inputFechaNac = document.getElementById('fecha_nacimiento')?.value;
+    const inputFechaAnal = document.getElementById('fecha_analitica')?.value;
+    
+    if (inputFechaNac && inputFechaAnal) {
+        const [diaNac, mesNac, añoNac] = inputFechaNac.split('/').map(Number);
+        const [diaAnal, mesAnal, añoAnal] = inputFechaAnal.split('/').map(Number);
+        const fechaNacimiento = new Date(añoNac, mesNac - 1, diaNac);
+        const fechaAnalitica = new Date(añoAnal, mesAnal - 1, diaAnal);
+        
+        if (fechaAnalitica < fechaNacimiento) {
+            // Lanzamos alerta roja y bloqueamos todo el proceso
+            Swal.fire({
+                icon: 'error',
+                title: 'Fechas incongruentes',
+                text: 'La fecha de la analítica no puede ser anterior a la fecha de nacimiento. Por favor, corríjalas para continuar.',
+                confirmButtonColor: '#ef4444' // Rojo alerta
+            });
+            return; // Cortamos la ejecución aquí, no se calcula nada
+        }
+    }
+
+    // 3. Si hay datos y las fechas tienen sentido lógico, validamos qué falta
     const camposVacios = validarTodosCampos();
 
     // Si faltan datos, lanzamos la alerta interactiva
@@ -1589,5 +1611,6 @@ function generarResultadoEcografia() {
     return htmlOut;
 
 }
+
 
 

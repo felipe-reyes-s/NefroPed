@@ -733,10 +733,19 @@ function performMedicalCalculations(data) {
         if (cr && talla) schwartz_neo = 0.31 * (talla / cr);
         if (cistC) bokenkamp = 100 * (0.83 / cistC);
     }
-    // GRUPO 2: LACTANTES (29 a 364 días)
+   // GRUPO 2: LACTANTES (29 a 364 días)
     else if (diasVida >= 29 && diasVida < 365) {
         if (cr && talla) schwartz_lact = 0.34 * (talla / cr);
         if (cistC) bokenkamp = 100 * (0.83 / cistC);
+        
+        // --- Aplicación de CKiD U25 en >1 mes (Usando la K fijada a 1 año de edad) ---
+        let k_cr_lactante = (sexo === 'M') ? 39.0 * Math.pow(1.008, 1 - 12) : 36.1 * Math.pow(1.008, 1 - 12);
+        if (cr > 0 && talla_m > 0) ckid_u25_cr = k_cr_lactante * (talla_m / cr);
+
+        let k_cist_lactante = (sexo === 'M') ? 87.2 * Math.pow(1.011, 1 - 15) : 79.9 * Math.pow(1.004, 1 - 12);
+        if (cistC > 0) ckid_u25_cistc = k_cist_lactante * (1 / cistC);
+
+        if (ckid_u25_cr > 0 && ckid_u25_cistc > 0) ckid_u25_combinado = (ckid_u25_cr + ckid_u25_cistc) / 2;
     }
     // GRUPO 3 y 4: MAYORES DE 1 AÑO (Hasta 25 años)
     else if (diasVida >= 365 && edadExacta <= 25) {
@@ -764,9 +773,17 @@ function performMedicalCalculations(data) {
         if (cr && edadExacta >= 2) {
             let Q_cr = 0;
             if (edadExacta <= 25) {
-                let lnQ_umol = 3.200 + (0.259 * edadExacta) - (0.543 * Math.log(edadExacta)) - (0.00763 * Math.pow(edadExacta, 2)) + (0.0000790 * Math.pow(edadExacta, 3));
+                let lnQ_umol = 0;
+                if (sexo === 'M' || sexo === 'Hombre') {
+                    // Polinomio de crecimiento para Hombres (2 a 25 años)
+                    lnQ_umol = 3.200 + (0.259 * edadExacta) - (0.543 * Math.log(edadExacta)) - (0.00763 * Math.pow(edadExacta, 2)) + (0.0000790 * Math.pow(edadExacta, 3));
+                } else {
+                    // Polinomio de crecimiento para Mujeres (2 a 25 años)
+                    lnQ_umol = 3.080 + (0.177 * edadExacta) - (0.223 * Math.log(edadExacta)) - (0.00596 * Math.pow(edadExacta, 2)) + (0.0000686 * Math.pow(edadExacta, 3));
+                }
                 Q_cr = Math.exp(lnQ_umol) / 88.4;
             } else {
+                // Constantes fijas para mayores de 25 años
                 Q_cr = (sexo === 'M' || sexo === 'Hombre') ? 0.90 : 0.70;
             }
             const ratioCr = cr / Q_cr;
@@ -775,6 +792,7 @@ function performMedicalCalculations(data) {
         }
 
         if (cistC && edadExacta >= 2) {
+            // Factor Q para Cistatina C es 0.83 fijo independiente del sexo
             const Q_cistC = 0.83;
             const ratioCistC = cistC / Q_cistC;
             const alphaCistC = ratioCistC <= 1 ? -0.322 : -1.132;
@@ -1002,7 +1020,7 @@ function generateReport(data) {
         hidrosalino.push(cist);
     }
     
-    if (isValid(results.ckid_u25_combinado)) hidrosalino.push(`eGFR Combinado (CKiD U25): ${fmt(results.ckid_u25_combinado)}ml/min/1.73m²`);
+    if (isValid(results.ckid_u25_combinado)) hidrosalino.push(`(eGFR Combinado CKiD U25: ${fmt(results.ckid_u25_combinado)}ml/min/1.73m²)`);
     if (isValid(results.vpercent)) hidrosalino.push(`V%: ${fmt(results.vpercent)}%`);
     if (isValid(data.na_plasma_meq_l)) hidrosalino.push(`Na: ${fmt(data.na_plasma_meq_l)}mEq/L`);
     if (isValid(results.efna)) hidrosalino.push(`EFNa: ${fmt(results.efna)}`);

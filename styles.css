@@ -530,3 +530,13 @@ summary:focus { outline: none; }
 [data-color-scheme="dark"] .bibliography-details a:hover {
     color: #7dd3fc !important;
 }
+/* Efecto rojizo para pestañas con campos incompletos */
+.tab-error {
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    border-bottom-color: var(--color-error) !important;
+    color: var(--color-error) !important;
+    transition: all 0.3s ease;
+}
+[data-color-scheme="dark"] .tab-error {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}

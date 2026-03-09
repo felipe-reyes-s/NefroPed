@@ -374,26 +374,38 @@ function switchTab(tabId, buttonElement) {
 
 function actualizarMarcadoresEnTiempoReal() {
     if (!primeraValidacion) return;
+    
+    // Lista de todas las pestañas y sus campos asociados
     const secciones = {
         'datos-basicos-tab': ['fecha_nacimiento', 'fecha_analitica', 'peso_kg', 'talla_cm'],
         'bioquimica-tab': ['urea_mg_dl', 'creatinina_enz_mg_dl', 'au_plasma_mg_dl', 'na_plasma_meq_l', 'k_plasma_meq_l', 'cl_plasma_meq_l', 'fosfatasa_alcalina_u_l', 'ca_plasma_mg_dl', 'p_plasma_mg_dl', 'mg_plasma_mg_dl', 'pth_pg_ml', 'vitamina_d_ng_ml', 'cistatina_c_mg_l'],
         'gasometria-tab': ['ph_plasma', 'pco2_mmhg', 'hco3_mmol_l', 'exceso_bases_mmol_l'],
         'orina-puntual-tab': ['densidad', 'ph_orina', 'au_orina_mg_dl', 'na_orina_meq_l', 'k_orina_meq_l', 'cl_orina_meq_l', 'osmolalidad_orina_mosm_kg', 'ca_orina_mg_dl', 'fosforo_orina_mg_dl', 'magnesio_orina_mg_dl', 'albumina_orina_mg_dl', 'creatinina_orina_mg_dl', 'proteinas_orina_mg_dl', 'citrato_orina_mg_dl', 'oxalato_orina_mg_dl'],
+        'hematologia-tab': ['hb_g_l', 'ferritina_ng_ml', 'ist_percent'],
         'orina-24h-tab': ['au_24h_mg', 'ca_24h_mg', 'p_24h_mg', 'mg_24h_mg', 'albumina_24h_mg', 'proteinas_24h_mg', 'citrato_24h_mg', 'oxalato_24h_mg'],
-        'hematologia-tab': ['hb_g_l', 'ferritina_ng_ml', 'ist_percent']
+        'ecografia-tab': ['rinon_izquierdo_mm', 'rinon_derecho_mm']
     };
 
     Object.keys(secciones).forEach(tabId => {
         let tieneError = false;
         secciones[tabId].forEach(campoId => {
             const campo = document.getElementById(campoId);
-            if (!campo || !campo.value || campo.value.trim() === '') {
-                tieneError = true;
-                if (campo) campo.classList.add('campo-error');
-            } else {
-                if (campo) campo.classList.remove('campo-error');
+            
+            // Si el campo está bloqueado (ej. monoreno), NO cuenta como error
+            if (campo && !campo.disabled) {
+                if (!campo.value || campo.value.trim() === '') {
+                    tieneError = true;
+                    campo.classList.add('campo-error');
+                } else {
+                    campo.classList.remove('campo-error');
+                }
+            } else if (campo && campo.disabled) {
+                // Limpiar error si se acaba de bloquear
+                campo.classList.remove('campo-error');
             }
         });
+        
+        // Aplicar o quitar la clase tab-error a la pestaña
         const tab = document.getElementById(tabId);
         if (tab) tab.classList.toggle('tab-error', tieneError);
     });
@@ -529,11 +541,11 @@ function marcarError(campoId, tieneError) {
 
 function validarTodosCampos() {
     let camposVacios = [];
-    primeraValidacion = true;
+    primeraValidacion = true; // Activa el chequeo "en directo"
     
     fieldIds.forEach(campoId => {
         const campo = document.getElementById(campoId);
-        // Si el campo está deshabilitado (ej. riñón ausente), lo ignoramos
+        // Omitir validación de campos bloqueados
         if (campo && campo.disabled) {
             marcarError(campoId, false);
         } else if (!campo || !campo.value || campo.value.trim() === '') { 
@@ -544,22 +556,10 @@ function validarTodosCampos() {
         }
     });
     
+    // Dispara el pintado rojo de las pestañas
     actualizarMarcadoresEnTiempoReal();
     
-    if (camposVacios.length > 0) {
-        const listaCampos = camposVacios.map(id => {
-            const label = document.querySelector(`label[for="${id}"]`);
-            return label ? label.textContent : id;
-        }).join(', ');
-        
-        Swal.fire({
-            icon: 'warning', title: 'Campos incompletos',
-            text: `Por favor, rellene los siguientes campos: ${listaCampos}`,
-            confirmButtonColor: '#0891b2'
-        });
-        return false;
-    }
-    return true;
+    return camposVacios; // Devolvemos la lista para la alerta
 }
 
 function updateFieldCounter() {
@@ -655,7 +655,48 @@ function getFormData() {
 }
 
 function calculateResults() {
-    if (validarTodosCampos()) executeCalculations();
+    // 1. Comprobación de seguridad: Si todo está vacío, no hacemos absolutamente nada.
+    const camposLlenos = camposParaContador.filter(id => document.getElementById(id)?.value.trim() !== '').length;
+    const ecoIzq = document.getElementById('rinon_izquierdo_mm')?.value.trim();
+    const ecoDer = document.getElementById('rinon_derecho_mm')?.value.trim();
+    
+    if (camposLlenos === 0 && !ecoIzq && !ecoDer) {
+        return; // Fin de la función, la página no se altera
+    }
+
+    // 2. Si hay datos, validamos qué falta
+    const camposVacios = validarTodosCampos();
+
+    // Si faltan datos, lanzamos la alerta interactiva
+    if (camposVacios.length > 0) {
+        let listaHTML = '<ul style="text-align: left; max-height: 180px; overflow-y: auto; margin-top: 15px; margin-bottom: 15px; font-size: 14px; color: var(--color-text-secondary); background: var(--color-bg-1); padding: 15px 15px 15px 35px; border-radius: 8px;">';
+        
+        camposVacios.forEach(id => {
+            const label = document.querySelector(`label[for="${id}"]`);
+            const nombreCampo = label ? label.textContent.split(' (')[0] : id;
+            listaHTML += `<li style="margin-bottom: 5px;"><strong>${nombreCampo}</strong></li>`;
+        });
+        listaHTML += '</ul>';
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos por rellenar',
+            html: `Se han detectado campos en blanco que limitarán los cálculos:<br>${listaHTML}¿Desea continuar y calcular lo que sea posible con los datos actuales?`,
+            showCancelButton: true,
+            confirmButtonColor: '#0891b2', 
+            cancelButtonColor: '#ef4444', 
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'No, rellenar antes',
+            reverseButtons: true 
+        }).then((result) => {
+            if (result.isConfirmed) {
+                executeCalculations();
+            }
+        });
+    } else {
+        // Si no falta nada, calculamos directamente
+        executeCalculations();
+    }
 }
 
 // =========================================================
@@ -830,7 +871,7 @@ function displayResults() {
         { key: 'ckid_u25_cistc', nombre: 'eGFR CKiD U25 CistC', unidad: 'ml/min/1.73m²' }, 
         { key: 'ckid_u25_combinado', nombre: 'eGFR Combinado', unidad: 'ml/min/1.73m²' }, 
         { key: 'ekfc_cr', nombre: 'eGFR EKFC Cr', unidad: 'ml/min/1.73m²' },
-        { key: 'ekfc_cistc', nombre: 'eGFR EKFCCC CistC', unidad: 'ml/min/1.73m²' },
+        { key: 'ekfc_cistc', nombre: 'eGFR EKFCCystC', unidad: 'ml/min/1.73m²' }, // Corregido aquí
         { key: 'efau', nombre: 'EF AU', unidad: '' }, { key: 'efna', nombre: 'EF Na', unidad: '' }, { key: 'efk', nombre: 'EF K', unidad: '' }, { key: 'efcl', nombre: 'EF Cl', unidad: '' }, { key: 'cacr', nombre: 'Ca/Cr', unidad: 'mg/mg' }, { key: 'rtp', nombre: 'RTP', unidad: '%' }, { key: 'mgcr', nombre: 'Mg/Cr', unidad: 'mg/mg' }, { key: 'pcr', nombre: 'P/Cr', unidad: 'mg/mg' }, { key: 'aucr', nombre: 'AU/Cr', unidad: 'mg/mg' }, { key: 'citratocr', nombre: 'Citrato/Cr', unidad: 'mg/mg' }, { key: 'cacitrato', nombre: 'Ca/Citrato', unidad: '' }, { key: 'oxalatocr', nombre: 'Oxalato/Cr', unidad: 'mg/mg' }, { key: 'albcr', nombre: 'Alb/Cr', unidad: 'mg/g' }, { key: 'protcr', nombre: 'Prot/Cr', unidad: 'mg/g' }, { key: 'nak', nombre: 'Na/K orina', unidad: '' }, { key: 'uricosuria', nombre: 'Uricosuria', unidad: 'mg/1.73m²/día' }, { key: 'calciuria', nombre: 'Calciuria', unidad: 'mg/kg/día' }, { key: 'citraturia', nombre: 'Citraturia', unidad: 'mg/kg/día' }, { key: 'fosfaturia', nombre: 'Fosfaturia', unidad: 'mg/kg/día' }, { key: 'oxaluria', nombre: 'Oxaluria', unidad: 'mg/1.73m²/día' }, { key: 'magnesuria', nombre: 'Magnesuria', unidad: 'mg/kg/día' }, { key: 'albuminuria', nombre: 'Albuminuria', unidad: 'mg/1.73m²/día' }, { key: 'proteinuria', nombre: 'Proteinuria', unidad: 'mg/m²/día' }, { key: 'proteinuriaestimada', nombre: 'Proteinuria estimada', unidad: 'mg/m²/día' }
     ];
     
@@ -838,15 +879,14 @@ function displayResults() {
         superficiecorporal: 'Superficie Corporal (m²)', imc: 'IMC (kg/m²)', vpercent: 'V% (creat enz/orina)', 
         schwartz_neo: 'eGFR Schwartz neonatal', schwartz_lact: 'eGFR Schwartz lactante',
         schwartz_bedside: 'eGFR Schwartz Bedside', bokenkamp: 'eGFR Bökenkamp',
-        ekfc_cr: 'eGFR EKFC Cr', ekfc_cistc: 'eGFR EKFC CistC',
+        ekfc_cr: 'eGFR EKFC Cr', ekfc_cistc: 'eGFR EKFCCystC', // Corregido aquí
         ckid_u25_cr: 'eGFR CKiD U25 Cr', ckid_u25_cistc: 'eGFR CKiD U25 CistC', ckid_u25_combinado: 'eGFR Combinado', 
         efna: 'EF Na (%)', efk: 'EF K (%)', efcl: 'EF Cl (%)', efau: 'EF AU (%)', cacr: 'Ca/Cr (mg/mg)', mgcr: 'Mg/Cr (mg/mg)', pcr: 'P/Cr (mg/mg)', aucr: 'AU/Cr (mg/mg)', albcr: 'Alb/Cr (mg/g)', protcr: 'Prot/Cr (mg/g)', citratocr: 'Citrato/Cr (mg/mg)', oxalatocr: 'Oxalato/Cr (mg/mg)', nak: 'Na/K orina', cacitrato: 'Ca/Citrato', rtp: 'RTP (%)', uricosuria: 'Uricosuria (mg/1.73m²/día)', calciuria: 'Calciuria (mg/kg/día)', citraturia: 'Citraturia (mg/kg/día)', fosfaturia: 'Fosfaturia (mg/kg/día)', magnesuria: 'Magnesuria (mg/kg/día)', oxaluria: 'Oxaluria (mg/1.73m²/día)', albuminuria: 'Albuminuria (mg/1.73m²/día)', proteinuria: 'Proteinuria (mg/m²/día)', proteinuriaestimada: 'Proteinuria estimada (mg/m²/día)'
     };
 
-    // Estructura de categorías (Idéntica al Informe)
-    const categorias = [
+   const categorias = [
         { titulo: "Datos Generales", keys: ['superficiecorporal', 'imc'] },
-        { titulo: "Filtrado Glomerular (eGFR)", keys: ['vpercent', 'schwartz_neo', 'schwartz_lact', 'schwartz_bedside', 'bokenkamp', 'ckid_u25_cr', 'ekfc_cr', 'ckid_u25_cistc', 'ekfc_cistc', 'ckid_u25_combinado'] },
+        { titulo: "Filtrado Glomerular (eGFR en ml/min/1.73m²)", keys: ['vpercent', 'schwartz_neo', 'schwartz_lact', 'schwartz_bedside', 'bokenkamp', 'ckid_u25_cr', 'ekfc_cr', 'ckid_u25_cistc', 'ekfc_cistc', 'ckid_u25_combinado'] },
         { titulo: "Excreción Fraccional", keys: ['efna', 'efk', 'efcl', 'efau'] },
         { titulo: "Índices Urinarios (Orina Puntual)", keys: ['cacr', 'mgcr', 'pcr', 'aucr', 'albcr', 'protcr', 'citratocr', 'oxalatocr', 'nak', 'cacitrato', 'rtp'] },
         { titulo: "Excreción en 24h", keys: ['uricosuria', 'calciuria', 'citraturia', 'fosfaturia', 'magnesuria', 'oxaluria', 'albuminuria', 'proteinuria', 'proteinuriaestimada'] }
@@ -854,7 +894,7 @@ function displayResults() {
     
     const resultsGrid = document.getElementById('resultsGrid');
     resultsGrid.innerHTML = '';
-    resultsGrid.className = ''; // Quitamos el grid global para aplicar grids por categoría
+    resultsGrid.className = ''; 
     resultsGrid.classList.remove('hidden');
     
     const emptyState = document.getElementById('empty-state-results');
@@ -862,7 +902,6 @@ function displayResults() {
  
     window.valoresFueraRango = []; 
 
-    // 1. Validar y registrar valores fuera de rango para la alerta roja global
     parametros.forEach(param => {
         const valor = results[param.key];
         if (valor && valor !== 0) {
@@ -874,7 +913,6 @@ function displayResults() {
         }
     });
     
-    // 2. Generar HTML por categorías
     let htmlFinal = "";
 
     categorias.forEach(cat => {
@@ -915,7 +953,6 @@ function displayResults() {
         }
     });
 
-    // 3. Añadir la Ecografía al final
     let tarjetaEcografia = generarResultadoEcografia();
     if (tarjetaEcografia !== "") {
         htmlFinal += `
@@ -942,15 +979,12 @@ function generateReport(data) {
     function fmt(value, decimals = 2) { return !isValid(value) ? null : parseFloat(value).toFixed(decimals); }
 
     let report = [];
-    
-    // Título Principal
     report.push("Informe de pruebas complementarias\n");
-    report.push("1) Analítica:");
     
+    // Primero recolectamos todos los bloques de analítica
     let hidrosalino = [];
     if (isValid(data.urea_mg_dl)) hidrosalino.push(`Urea: ${fmt(data.urea_mg_dl)}mg/dL`);
     
-    // FORMATO DE REPORTE CON TODAS LAS eGFR (Creatinina)
     if (isValid(data.creatinina_enz_mg_dl)) {
         let cr = `Cr: ${fmt(data.creatinina_enz_mg_dl)}mg/dL`;
         if (isValid(results.schwartz_neo)) cr += ` (eGFR Schwartz neonatal: ${fmt(results.schwartz_neo)}ml/min/1.73m²)`;
@@ -961,12 +995,11 @@ function generateReport(data) {
         hidrosalino.push(cr);
     }
     
-    // FORMATO DE REPORTE CON TODAS LAS eGFR (Cistatina C)
     if (isValid(data.cistatina_c_mg_l)) {
         let cist = `Cistatina C: ${fmt(data.cistatina_c_mg_l)}mg/L`;
         if (isValid(results.bokenkamp)) cist += ` (eGFR Bökenkamp: ${fmt(results.bokenkamp)}ml/min/1.73m²)`;
         if (isValid(results.ckid_u25_cistc)) cist += ` (eGFR CKiD U25 CistC: ${fmt(results.ckid_u25_cistc)}ml/min/1.73m²)`;
-        if (isValid(results.ekfc_cistc)) cist += ` (eGFR EKFCCC CistC: ${fmt(results.ekfc_cistc)}ml/min/1.73m²)`;
+        if (isValid(results.ekfc_cistc)) cist += ` (EKFCCystC: ${fmt(results.ekfc_cistc)}ml/min/1.73m²)`; 
         hidrosalino.push(cist);
     }
     
@@ -980,7 +1013,6 @@ function generateReport(data) {
     if (isValid(results.efcl)) hidrosalino.push(`EFCl: ${fmt(results.efcl)}`);
     if (isValid(data.au_plasma_mg_dl)) hidrosalino.push(`AU: ${fmt(data.au_plasma_mg_dl)}mg/dL`);
     if (isValid(results.efau)) hidrosalino.push(`EFAU: ${fmt(results.efau)}`);
-    if (hidrosalino.length > 0) report.push(`- Hidrosalino: ${hidrosalino.join('   ')}`);
 
     let fosfocalcico = [];
     if (isValid(data.ca_plasma_mg_dl)) fosfocalcico.push(`Ca: ${fmt(data.ca_plasma_mg_dl)}mg/dL`);
@@ -993,20 +1025,17 @@ function generateReport(data) {
     if (isValid(data.pth_pg_ml)) fosfocalcico.push(`PTH: ${fmt(data.pth_pg_ml)}pg/mL`);
     if (isValid(data.vitamina_d_ng_ml)) fosfocalcico.push(`Vitamina D: ${fmt(data.vitamina_d_ng_ml)}ng/mL`);
     if (isValid(data.fosfatasa_alcalina_u_l)) fosfocalcico.push(`Fosfatasa alcalina: ${fmt(data.fosfatasa_alcalina_u_l)}U/L`);
-    if (fosfocalcico.length > 0) report.push(`- Metabolismo fosfocálcico: ${fosfocalcico.join('   ')}`);
 
     let hematologico = [];
     if (isValid(data.hb_g_l)) hematologico.push(`Hemoglobina: ${fmt(data.hb_g_l)}g/L`);
     if (isValid(data.ferritina_ng_ml)) hematologico.push(`Ferritina: ${fmt(data.ferritina_ng_ml)}ng/mL`);
     if (isValid(data.ist_percent)) hematologico.push(`IST: ${fmt(data.ist_percent)}%`);
-    if (hematologico.length > 0) report.push(`- Hematológico: ${hematologico.join('   ')}`);
 
     let gasometria = [];
     if (isValid(data.ph_plasma)) gasometria.push(`pH: ${fmt(data.ph_plasma)}`);
     if (isValid(data.pco2_mmhg)) gasometria.push(`pCO2: ${fmt(data.pco2_mmhg)}mmHg`);
     if (isValid(data.hco3_mmol_l)) gasometria.push(`HCO3: ${fmt(data.hco3_mmol_l)}mmol/L`);
     if (isValid(data.exceso_bases_mmol_l)) gasometria.push(`Exceso de bases: ${fmt(data.exceso_bases_mmol_l)}mmol/L`);
-    if (gasometria.length > 0) report.push(`- Gasometría: ${gasometria.join('   ')}`);
 
     let orina = [];
     const sedimentoUrinario = document.getElementById('sedimento_urinario') ? document.getElementById('sedimento_urinario').value.trim() : '';
@@ -1026,7 +1055,6 @@ function generateReport(data) {
     }
     
     if (isValid(data.osmolalidad_orina_mosm_kg)) orina.push(`Osmolalidad urinaria: ${fmt(data.osmolalidad_orina_mosm_kg)}mOsm/kg`);
-    if (orina.length > 0) report.push(`- Orina puntual: ${orina.join('   ')}`);
 
     let cocientes = [];
     if (isValid(results.aucr)) cocientes.push(`AU/Cr: ${fmt(results.aucr)}mg/mg`);
@@ -1035,7 +1063,6 @@ function generateReport(data) {
     if (isValid(results.citratocr)) cocientes.push(`Citrato/Cr: ${fmt(results.citratocr)}mg/mg`);
     if (isValid(results.cacitrato)) cocientes.push(`Ca/Citrato: ${fmt(results.cacitrato)}`);
     if (isValid(results.oxalatocr)) cocientes.push(`Oxalato/Cr: ${fmt(results.oxalatocr)}mg/mg`);
-    if (cocientes.length > 0) report.push(`- Cocientes urinarios: ${cocientes.join('   ')}`);
 
     let orina24h = [];
     if (isValid(results.uricosuria)) orina24h.push(`Uricosuria: ${fmt(results.uricosuria)}mg/1.73m²`);
@@ -1046,20 +1073,31 @@ function generateReport(data) {
     if (isValid(results.magnesuria)) orina24h.push(`Magnesuria: ${fmt(results.magnesuria)}mg/kg/día`);
     if (isValid(results.proteinuria)) orina24h.push(`Proteinuria: ${fmt(results.proteinuria)}mg/m²/día`);
     if (isValid(results.albuminuria)) orina24h.push(`Albuminuria: ${fmt(results.albuminuria)}mg/1.73m²/día`);
-    if (orina24h.length > 0) report.push(`- Orina de 24h: ${orina24h.join('   ')}`);
+
+    // Comprobar si hay ALGÚN dato analítico para imprimir el encabezado "1) Analítica"
+    let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + cocientes.length + orina24h.length) > 0;
+
+    if (hayDatosAnalitica) {
+        report.push("1) Analítica:");
+        if (hidrosalino.length > 0) report.push(`- Hidrosalino: ${hidrosalino.join('   ')}`);
+        if (fosfocalcico.length > 0) report.push(`- Metabolismo fosfocálcico: ${fosfocalcico.join('   ')}`);
+        if (hematologico.length > 0) report.push(`- Hematológico: ${hematologico.join('   ')}`);
+        if (gasometria.length > 0) report.push(`- Gasometría: ${gasometria.join('   ')}`);
+        if (orina.length > 0) report.push(`- Orina puntual: ${orina.join('   ')}`);
+        if (cocientes.length > 0) report.push(`- Cocientes urinarios: ${cocientes.join('   ')}`);
+        if (orina24h.length > 0) report.push(`- Orina de 24h: ${orina24h.join('   ')}`);
+    }
 
     const comentarioNutricional = document.getElementById('comentario_nutricional') ? document.getElementById('comentario_nutricional').value.trim() : '';
     if (comentarioNutricional) {
         report.push(`- Nutricional: ${comentarioNutricional}`);
     }
 
-    // INYECTAR LA ECOGRAFÍA EN EL INFORME (En su propia sección)
     if (window.ecografiaReportText) {
         report.push("\n2) Ecografía renal");
         report.push(window.ecografiaReportText);
     }
     
-    // --- ESTADIFICACIÓN KDIGO Y LACTANTES ---
     function evaluarGradoG(egfr) {
         if (!isValid(egfr)) return null;
         if (egfr >= 90) return "Estadio G1 (Normal o elevado)";
@@ -1107,7 +1145,7 @@ function generateReport(data) {
         if (isValid(results.ekfc_cr)) grados_kdigo.push(`- eGFR EKFC Cr: ${evaluarGradoG(results.ekfc_cr)}`);
         
         if (isValid(results.ckid_u25_cistc)) grados_kdigo.push(`- eGFR CKiD U25 CistC: ${evaluarGradoG(results.ckid_u25_cistc)}`);
-        if (isValid(results.ekfc_cistc)) grados_kdigo.push(`- eGFR EKFCCC CistC: ${evaluarGradoG(results.ekfc_cistc)}`);
+        if (isValid(results.ekfc_cistc)) grados_kdigo.push(`- eGFR EKFCCystC: ${evaluarGradoG(results.ekfc_cistc)}`); 
         
         if (isValid(results.ckid_u25_combinado)) grados_kdigo.push(`- eGFR Combinado (CKiD U25): ${evaluarGradoG(results.ckid_u25_combinado)}`);
         
@@ -1115,11 +1153,10 @@ function generateReport(data) {
         if (gradoAlb) grados_kdigo.push(`- Albuminuria: ${gradoAlb}`);
 
         if (grados_kdigo.length > 0) {
-            report.push('\n\nESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2012\n');
+            report.push('\n\nESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2024\n');
             report = report.concat(grados_kdigo); 
         }
     } else {
-        // Bebés y Lactantes (< 2 años)
         let grados_lactante = [];
         
         if (isValid(results.schwartz_neo)) grados_lactante.push(`- eGFR Schwartz neonatal: ${evaluarERC_Lactante(results.schwartz_neo, mesesTotales)}`);
@@ -1130,7 +1167,7 @@ function generateReport(data) {
         
         if (isValid(results.bokenkamp)) grados_lactante.push(`- eGFR Bökenkamp (CistC): ${evaluarERC_Lactante(results.bokenkamp, mesesTotales)}`);
         if (isValid(results.ckid_u25_cistc)) grados_lactante.push(`- eGFR CKiD U25 CistC: ${evaluarERC_Lactante(results.ckid_u25_cistc, mesesTotales)}`);
-        if (isValid(results.ekfc_cistc)) grados_lactante.push(`- eGFR EKFCCC CistC: ${evaluarERC_Lactante(results.ekfc_cistc, mesesTotales)}`);
+        if (isValid(results.ekfc_cistc)) grados_lactante.push(`- eGFR EKFCCystC: ${evaluarERC_Lactante(results.ekfc_cistc, mesesTotales)}`);
         
         if (isValid(results.ckid_u25_combinado)) grados_lactante.push(`- eGFR Combinado (CKiD U25): ${evaluarERC_Lactante(results.ckid_u25_combinado, mesesTotales)}`);
 
@@ -1139,11 +1176,9 @@ function generateReport(data) {
             report = report.concat(grados_lactante);
         }
     }
-    // -----------------------------------------------------
     
     if (window.valoresFueraRango && window.valoresFueraRango.length > 0) {
         report.push('\n\nVALORES FUERA DE RANGO\n');
-        // Aseguramos que empiecen por guión y borramos el "por" en "por encima/debajo" para ajustar el formato
         let fueraRangoEditado = window.valoresFueraRango.map(v => `-${v}`);
         fueraRangoEditado.forEach(v => report.push(v));
     }

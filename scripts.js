@@ -1215,7 +1215,9 @@ function generateReport(data) {
     reportContentDiv.appendChild(preElement);
 
     document.getElementById('reportSection').classList.remove('hidden');
-    setTimeout(() => { document.getElementById('reportSection').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        // Hacemos el scroll hacia el contenedor principal de resultados, no al informe final
+    setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+    
 }
 
 // ===============================================
@@ -1587,4 +1589,5 @@ function generarResultadoEcografia() {
     return htmlOut;
 
 }
+
 

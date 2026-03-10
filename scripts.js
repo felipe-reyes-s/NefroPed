@@ -61,19 +61,19 @@ function mostrarAvisoActualizacion(worker) {
 // ===============================================
 // 2. VARIABLES GLOBALES Y CONFIGURACIÓN
 // ===============================================
-// Campos matemáticos (excluye Edad calculada, textos largos, y los checkboxes/radios del monoreno)
-const fieldIds = Array.from(document.querySelectorAll('#clinicalForm input[id]:not([id="edad_calculada"]):not([type="checkbox"]):not([type="radio"]), #clinicalForm select[id]')).map(el => el.id);
-
-// Todos los campos editables para el contador visual (suma 52 campos en total)
-const camposParaContador = [...fieldIds, 'sedimento_urinario', 'comentario_nutricional'];
-window.calculatedResults = {};
+let fieldIds = [];
+let camposParaContador = [];
 let reportText = '';
-let primeraValidacion = false; 
 
-window.edadEnAños = 0;
-window.edadEnMeses = 0;
-window.edadTotalMeses = 0;
-window.valoresFueraRango = [];
+const AppState = {
+    calculatedResults: {},
+    primeraValidacion: false,
+    edadEnAños: 0,
+    edadEnMeses: 0,
+    edadTotalMeses: 0,
+    valoresFueraRango: [],
+    ecografiaReportText: ""
+};
 
 // ===============================================
 // 3. INICIALIZACIÓN PRINCIPAL (DOMContentLoaded Maestro)
@@ -81,11 +81,19 @@ window.valoresFueraRango = [];
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Inicializando aplicación...');
     
+    // 1. Primero leemos todos los IDs del HTML
+// 1. Leemos los IDs, pero EXCLUIMOS la edad calculada, los checkboxes y los radios
+    fieldIds = Array.from(document.querySelectorAll('#clinicalForm input[id], #clinicalForm select[id]'))
+        .filter(input => input.id !== 'edad_calculada' && input.type !== 'checkbox' && input.type !== 'radio')
+        .map(input => input.id);    
+    // 2. Luego montamos el contador sumando los de texto
+    camposParaContador = [...fieldIds, 'sedimento_urinario', 'comentario_nutricional'];
+
+    // 3. Lanzamos el resto de funciones
     configureNumericValidation();
     configurarEventosFechas();
     verifyFieldsExist();
     setupTabNavigation();
-    setupTabNavigationScroll();
     setupFormEvents();
     setupButtons();
     updateFieldCounter();
@@ -196,7 +204,7 @@ function setupAutoSave() {
             const data = JSON.parse(savedData);
             Object.keys(data).forEach(key => {
                 const input = document.getElementById(key);
-                if (input && data[key] !== 0 && data[key] !== '') input.value = data[key];
+                if (input && data[key] !== null && data[key] !== '') input.value = data[key];
             });
             calcularEdad();
         } catch (e) {
@@ -235,6 +243,16 @@ function calcularEdad() {
     
     const nacimiento = new Date(añoNac, mesNac - 1, diaNac);
     const analitica = new Date(añoAnal, mesAnal - 1, diaAnal);
+
+    // NUEVO: Validación estricta de fechas imposibles (ej. 31/02/2020)
+    if (
+        nacimiento.getDate() !== diaNac || nacimiento.getMonth() !== mesNac - 1 || nacimiento.getFullYear() !== añoNac ||
+        analitica.getDate() !== diaAnal || analitica.getMonth() !== mesAnal - 1 || analitica.getFullYear() !== añoAnal
+    ) {
+        document.getElementById('edad_calculada').value = 'Fecha inexistente';
+        return;
+    }
+
     if (nacimiento >= analitica) {
         document.getElementById('edad_calculada').value = 'Fechas inválidas';
         return;
@@ -246,9 +264,11 @@ function calcularEdad() {
     if (meses < 0) { años--; meses += 12; }
     
     document.getElementById('edad_calculada').value = `${años} años ${meses} meses`;
-    window.edadEnAños = años;
-    window.edadEnMeses = meses;
-    window.edadTotalMeses = años * 12 + meses;
+    
+    // Usamos AppState porque ya implementamos el Punto 11
+    AppState.edadEnAños = años;
+    AppState.edadEnMeses = meses;
+    AppState.edadTotalMeses = años * 12 + meses;
 }
 
 function configurarEventosFechas() {
@@ -345,35 +365,48 @@ function verifyFieldsExist() {
 }
 
 function setupTabNavigation() {
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', function() { switchTab(this.getAttribute('data-tab'), this); });
-    });
-}
-
-function setupTabNavigationScroll() {
     document.querySelectorAll('.tab-button').forEach((btn, i, allBtns) => {
-        btn.onclick = function() {
+        btn.addEventListener('click', function() { 
+            // 1. Cambiamos de pestaña
+            switchTab(this.getAttribute('data-tab'), this); 
+            
+            // 2. Comprobamos si necesitamos hacer scroll (para móviles)
             const container = btn.closest('.tabs') || btn.closest('.nav-tabs');
             if (container && (container.scrollWidth > container.clientWidth)) {
                 const btnRect = btn.getBoundingClientRect();
                 const contRect = container.getBoundingClientRect();
-                if ((btnRect.right >= contRect.right - 8) && (i < allBtns.length - 1)) container.scrollLeft = container.scrollWidth;
-                if ((btnRect.left <= contRect.left + 8) && (i > 0)) container.scrollLeft = 0;
+                if ((btnRect.right >= contRect.right - 8) && (i < allBtns.length - 1)) {
+                    container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+                }
+                if ((btnRect.left <= contRect.left + 8) && (i > 0)) {
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                }
             }
-        };
+        });
     });
 }
 
 function switchTab(tabId, buttonElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    
+    // Apagamos todas las pestañas visualmente y para los lectores de pantalla
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false'); // NUEVO: Apagar ARIA
+    });
+    
     const targetTab = document.getElementById(tabId);
     if (targetTab) targetTab.classList.add('active');
-    if (buttonElement) buttonElement.classList.add('active');
+    
+    // Encendemos la pestaña clickeada visualmente y para los lectores de pantalla
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+        buttonElement.setAttribute('aria-selected', 'true'); // NUEVO: Encender ARIA
+    }
 }
 
 function actualizarMarcadoresEnTiempoReal() {
-    if (!primeraValidacion) return;
+    if (!AppState.primeraValidacion) return;
     
     // Lista de todas las pestañas y sus campos asociados
     const secciones = {
@@ -433,7 +466,7 @@ function setupFormEvents() {
 
 function setupButtons() {
     const calculateButton = document.getElementById('calculateButton');
-    if (calculateButton) calculateButton.addEventListener('click', () => { primeraValidacion = true; actualizarMarcadoresEnTiempoReal(); calculateResults(); });
+    if (calculateButton) calculateButton.addEventListener('click', () => { AppState.primeraValidacion = true; actualizarMarcadoresEnTiempoReal(); calculateResults(); });
     
     const copyClipboardButton = document.getElementById('copyClipboardButton');
     if (copyClipboardButton) copyClipboardButton.addEventListener('click', copyToClipboard);
@@ -484,9 +517,9 @@ function clearFormSilent() {
     const reportContent = document.getElementById('reportContent'); 
     if(reportContent) reportContent.textContent = '';
      
-    window.calculatedResults = {}; 
+    AppState.calculatedResults = {}; 
     reportText = ''; 
-    primeraValidacion = false;
+    AppState.primeraValidacion = false;
     
     document.querySelectorAll('.tab-error').forEach(tab => tab.classList.remove('tab-error'));
     
@@ -498,14 +531,23 @@ function clearFormSilent() {
 function clearForm() { confirmarLimpiarFormulario(); }
 
 function loadSampleData() {
+    // 1. Fechas dinámicas (Paciente siempre tiene 12 años exactos hoy)
+    const hoy = new Date();
+    const diaHoy = hoy.getDate().toString().padStart(2, '0');
+    const mesHoy = (hoy.getMonth() + 1).toString().padStart(2, '0');
+    const anioHoy = hoy.getFullYear();
+    const anioNac = anioHoy - 12;
+
     const sampleData = {
-        fecha_nacimiento: '15/03/2012', fecha_analitica: '20/10/2024', peso_kg: 35.5, talla_cm: 140.0, sexo: 'M',
+        fecha_nacimiento: `${diaHoy}/${mesHoy}/${anioNac}`, 
+        fecha_analitica: `${diaHoy}/${mesHoy}/${anioHoy}`, 
+        peso_kg: 35.5, talla_cm: 140.0, sexo: 'M',
         urea_mg_dl: 28, creatinina_enz_mg_dl: 0.65, au_plasma_mg_dl: 4.2, na_plasma_meq_l: 138.5, k_plasma_meq_l: 4.1, cl_plasma_meq_l: 105.2, fosfatasa_alcalina_u_l: 180, ca_plasma_mg_dl: 9.8, p_plasma_mg_dl: 4.5, mg_plasma_mg_dl: 1.9, pth_pg_ml: 35.2, vitamina_d_ng_ml: 28.5, comentario_nutricional: "Paciente normopeso. Dieta equilibrada con buena tolerancia oral. Sin incidencias", cistatina_c_mg_l: 0.92,
         ph_plasma: 7.38, pco2_mmhg: 42.1, hco3_mmol_l: 22.8, exceso_bases_mmol_l: -1.2,
         densidad: 1018, ph_orina: 6.2, sedimento_urinario: "Hematíes 3-5/campo. Leucocitos aislados. Ausencia de cilindros.", au_orina_mg_dl: 45.8, na_orina_meq_l: 85.2, k_orina_meq_l: 55.1, cl_orina_meq_l: 98.5, osmolalidad_orina_mosm_kg: 320, ca_orina_mg_dl: 12.5, fosforo_orina_mg_dl: 18.2, magnesio_orina_mg_dl: 8.5, albumina_orina_mg_dl: 3.2, creatinina_orina_mg_dl: 68.5, proteinas_orina_mg_dl: 8.1, citrato_orina_mg_dl: 85.2, oxalato_orina_mg_dl: 15.8,
         au_24h_mg: 420, ca_24h_mg: 85, p_24h_mg: 520, mg_24h_mg: 65, albumina_24h_mg: 25, proteinas_24h_mg: 95, citrato_24h_mg: 485, oxalato_24h_mg: 28,
         hb_g_l: 125, ferritina_ng_ml: 45.8, ist_percent: 22.5,
-        rinon_izquierdo_mm: 98, rinon_derecho_mm: 95 // Datos eco
+        rinon_izquierdo_mm: 98, rinon_derecho_mm: 95 
     };
     
     // Desmarcar monoreno al cargar los datos de test
@@ -541,7 +583,7 @@ function marcarError(campoId, tieneError) {
 
 function validarTodosCampos() {
     let camposVacios = [];
-    primeraValidacion = true; // Activa el chequeo "en directo"
+    AppState.primeraValidacion = true; // Activa el chequeo "en directo"
     
     fieldIds.forEach(campoId => {
         const campo = document.getElementById(campoId);
@@ -594,7 +636,7 @@ function evaluarRango(parametro, valor, edad, edadMeses) {
             rangoMin = 90; rangoTexto = '>90ml/min/1.73m²'; return { enRango: valor >= rangoMin, tipo: valor < rangoMin ? 'bajo' : 'normal', rangoTexto };
             
         // Fórmulas para Lactantes y Neonatos (Ajuste dinámico por mes)
-        case 'schwartz_neo': case 'schwartz_lact': case 'bokenkamp':
+        case 'schwartz_neo': case 'schwartz_lact': case 'bokenkamp':{
             const limites_minimos = {
                 1: 35, 2: 40, 3: 45, 4: 50, 5: 55, 6: 60, 7: 63, 8: 65, 9: 68, 10: 70, 
                 11: 73, 12: 75, 13: 76, 14: 77, 15: 78, 16: 79, 17: 81, 18: 82, 19: 83, 
@@ -604,7 +646,7 @@ function evaluarRango(parametro, valor, edad, edadMeses) {
             rangoMin = limites_minimos[mesUsado] || 90;
             rangoTexto = `>${rangoMin}ml/min/1.73m² (Normal para ${mesUsado} meses)`;
             return { enRango: valor >= rangoMin, tipo: valor < rangoMin ? 'bajo' : 'normal', rangoTexto };
-
+        }
         case 'efau': if (edad >= 1 && edad < 5) { rangoMin = 11; rangoMax = 17; rangoTexto = '11–17'; } else if (edad >= 5) { rangoMin = 4.45; rangoMax = 9.99; rangoTexto = '4.45–9.99'; } else esRangoValido = false; break;
         case 'efna': rangoMin = 0.42; rangoMax = 0.84; rangoTexto = '0.42–0.84'; break;
         case 'efk': rangoMin = 5.19; rangoMax = 11.67; rangoTexto = '5.19–11.67'; break;
@@ -650,7 +692,7 @@ function getFormData() {
             data[fieldId] = isNaN(numValue) ? 0 : numValue;
         }
     });
-    data.edad = window.edadEnAños || 0;
+    data.edad = AppState.edadEnAños || 0;
     return data;
 }
 
@@ -664,7 +706,7 @@ function calculateResults() {
         return; // Fin de la función, la página no se altera
     }
 
-    // 2. BLINDAJE DE FECHAS: Evitar viajes en el tiempo
+// 2. BLINDAJE DE FECHAS: Evitar viajes en el tiempo y fechas inventadas
     const inputFechaNac = document.getElementById('fecha_nacimiento')?.value;
     const inputFechaAnal = document.getElementById('fecha_analitica')?.value;
     
@@ -674,18 +716,31 @@ function calculateResults() {
         const fechaNacimiento = new Date(añoNac, mesNac - 1, diaNac);
         const fechaAnalitica = new Date(añoAnal, mesAnal - 1, diaAnal);
         
+        // BLOQUEO A: Fechas inexistentes (ej. 31 de febrero o 29 feb en año NO bisiesto)
+        if (
+            fechaNacimiento.getDate() !== diaNac || fechaNacimiento.getMonth() !== mesNac - 1 || fechaNacimiento.getFullYear() !== añoNac ||
+            fechaAnalitica.getDate() !== diaAnal || fechaAnalitica.getMonth() !== mesAnal - 1 || fechaAnalitica.getFullYear() !== añoAnal
+        ) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Fecha inexistente',
+                text: 'Has introducido una fecha que no existe en el calendario (revise los días 31 y los años bisiestos).',
+                confirmButtonColor: '#ef4444'
+            });
+            return; // Cortamos la ejecución, no se calcula nada
+        }
+
+        // BLOQUEO B: Viajes en el tiempo (analítica antes de nacer)
         if (fechaAnalitica < fechaNacimiento) {
-            // Lanzamos alerta roja y bloqueamos todo el proceso
             Swal.fire({
                 icon: 'error',
                 title: 'Fechas incongruentes',
                 text: 'La fecha de la analítica no puede ser anterior a la fecha de nacimiento. Por favor, corríjalas para continuar.',
-                confirmButtonColor: '#ef4444' // Rojo alerta
+                confirmButtonColor: '#ef4444' 
             });
-            return; // Cortamos la ejecución aquí, no se calcula nada
+            return; // Cortamos la ejecución, no se calcula nada
         }
     }
-
     // 3. Si hay datos y las fechas tienen sentido lógico, validamos qué falta
     const camposVacios = validarTodosCampos();
 
@@ -727,7 +782,7 @@ function calculateResults() {
 function performMedicalCalculations(data) {
     const superficieCorporal = Math.sqrt(data.peso_kg * data.talla_cm / 3600);
     const imc = data.peso_kg > 0 && data.talla_cm > 0 ? data.peso_kg / Math.pow(data.talla_cm / 100, 2) : 0;
-    const edadExacta = window.edadEnAños + (window.edadEnMeses / 12);
+    const edadExacta = AppState.edadEnAños + (AppState.edadEnMeses / 12);
     const talla_m = data.talla_cm / 100;
 
     // --- 1. NUEVO MOTOR DE FILTRADO GLOMERULAR (eFG) PEDIÁTRICO ---
@@ -868,7 +923,7 @@ function performMedicalCalculations(data) {
 // =========================================================
 function executeCalculations() {
     const data = getFormData();
-    window.valoresFueraRango = [];
+    AppState.valoresFueraRango = [];
 
     const calcButton = document.querySelector('.btn-calcular');
     
@@ -876,7 +931,7 @@ function executeCalculations() {
     calcButton.innerHTML = 'Calculando... <i class="fas fa-spinner fa-spin" style="margin-left: 8px;"></i>';
 
     try {
-        window.calculatedResults = performMedicalCalculations(data);
+        AppState.calculatedResults = performMedicalCalculations(data);
 
         setTimeout(() => {
             displayResults();
@@ -896,10 +951,10 @@ function executeCalculations() {
 }
 
 function displayResults() {
-    const results = window.calculatedResults;
+    const results = AppState.calculatedResults;
     if (!results) return;
-    const edad = window.edadEnAños || 0;
-    const edadMeses = window.edadEnMeses || 0;
+    const edad = AppState.edadEnAños || 0;
+    const edadMeses = AppState.edadEnMeses || 0;
     
     const parametros = [
         { key: 'vpercent', nombre: 'V%', unidad: '%' }, 
@@ -940,7 +995,7 @@ function displayResults() {
     const emptyState = document.getElementById('empty-state-results');
     if(emptyState) emptyState.classList.add('hidden');
  
-    window.valoresFueraRango = []; 
+    AppState.valoresFueraRango = []; 
 
     parametros.forEach(param => {
         const valor = results[param.key];
@@ -948,7 +1003,7 @@ function displayResults() {
             const evaluacion = evaluarRango(param.key, valor, edad, edadMeses);
             if (!evaluacion.enRango) {
                 const tipoFuera = evaluacion.tipo === 'alto' ? 'por encima de rango' : 'por debajo de rango';
-                window.valoresFueraRango.push(`${param.nombre} ${param.unidad ? `(${param.unidad})` : ''}: ${valor.toFixed(2)}${param.unidad} ${tipoFuera} (VN ${evaluacion.rangoTexto})`);
+                AppState.valoresFueraRango.push(`${param.nombre} ${param.unidad ? `(${param.unidad})` : ''}: ${valor.toFixed(2)}${param.unidad} ${tipoFuera} (VN ${evaluacion.rangoTexto})`);
             }
         }
     });
@@ -1012,15 +1067,14 @@ function displayResults() {
 }
 
 function generateReport(data) {
-    const results = window.calculatedResults;
-    if (!results) return;
+    const results = AppState.calculatedResults;
+    if (!results || Object.keys(results).length === 0) return;
 
     function isValid(value) { return value != null && !isNaN(value) && value !== 0; }
     function fmt(value, decimals = 2) { return !isValid(value) ? null : parseFloat(value).toFixed(decimals); }
 
-    let report = [];
+    let report = []; // Aquí guardaremos el texto plano para el portapapeles
         
-    // Primero recolectamos todos los bloques de analítica
     let hidrosalino = [];
     if (isValid(data.urea_mg_dl)) hidrosalino.push(`Urea: ${fmt(data.urea_mg_dl)}mg/dL`);
     
@@ -1113,7 +1167,6 @@ function generateReport(data) {
     if (isValid(results.proteinuria)) orina24h.push(`Proteinuria: ${fmt(results.proteinuria)}mg/m²/día`);
     if (isValid(results.albuminuria)) orina24h.push(`Albuminuria: ${fmt(results.albuminuria)}mg/1.73m²/día`);
 
-    // Comprobar si hay ALGÚN dato analítico para imprimir el encabezado "1) Analítica"
     let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + cocientes.length + orina24h.length) > 0;
 
     if (hayDatosAnalitica) {
@@ -1132,11 +1185,11 @@ function generateReport(data) {
         report.push(`- Nutricional: ${comentarioNutricional}`);
     }
 
-    if (window.ecografiaReportText) {
+    if (AppState.ecografiaReportText) {
         report.push("\n2) Ecografía renal");
-        report.push(window.ecografiaReportText);
+        report.push(AppState.ecografiaReportText);
     }
-    //ESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2024
+
     function evaluarGradoG(egfr) {
         if (!isValid(egfr)) return null;
         if (egfr >= 90) return "Estadio G1 (Normal o elevado)";
@@ -1174,139 +1227,178 @@ function generateReport(data) {
         return "Estadio A3 (Muy elevada)";
     }
 
-    const mesesTotales = window.edadTotalMeses || 0;
+    const mesesTotales = AppState.edadTotalMeses || 0;
+    let htmlEstadificacion = "";
 
-    if (window.edadEnAños >= 2) {
+    if (AppState.edadEnAños >= 2) {
         let grados_kdigo = [];
-        
         if (isValid(results.schwartz_bedside)) grados_kdigo.push(`- eGFR Schwartz Bedside: ${evaluarGradoG(results.schwartz_bedside)}`);
         if (isValid(results.ckid_u25_cr)) grados_kdigo.push(`- eGFR CKiD U25 Cr: ${evaluarGradoG(results.ckid_u25_cr)}`);
         if (isValid(results.ekfc_cr)) grados_kdigo.push(`- eGFR EKFC Cr: ${evaluarGradoG(results.ekfc_cr)}`);
-        
         if (isValid(results.ckid_u25_cistc)) grados_kdigo.push(`- eGFR CKiD U25 CistC: ${evaluarGradoG(results.ckid_u25_cistc)}`);
         if (isValid(results.ekfc_cistc)) grados_kdigo.push(`- eGFR EKFCCystC: ${evaluarGradoG(results.ekfc_cistc)}`); 
-        
         if (isValid(results.ckid_u25_combinado)) grados_kdigo.push(`- eGFR Combinado (CKiD U25): ${evaluarGradoG(results.ckid_u25_combinado)}`);
-        
         let gradoAlb = (results.albcr !== undefined && results.albcr > 0) ? evaluarGradoA(results.albcr) : null;
         if (gradoAlb) grados_kdigo.push(`- Albuminuria: ${gradoAlb}`);
 
         if (grados_kdigo.length > 0) {
             report.push('\n\nESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2024\n');
             report = report.concat(grados_kdigo); 
+            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación según guías KDIGO 2024</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+            grados_kdigo.forEach(g => {
+                let part = g.replace('- ', '').split(': ');
+                htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(': ')}</li>`;
+            });
+            htmlEstadificacion += `</ul>`;
         }
     } else {
         let grados_lactante = [];
-        
         if (isValid(results.schwartz_neo)) grados_lactante.push(`- eGFR Schwartz neonatal: ${evaluarERC_Lactante(results.schwartz_neo, mesesTotales)}`);
         if (isValid(results.schwartz_lact)) grados_lactante.push(`- eGFR Schwartz lactante: ${evaluarERC_Lactante(results.schwartz_lact, mesesTotales)}`);
         if (isValid(results.schwartz_bedside)) grados_lactante.push(`- eGFR Schwartz Bedside: ${evaluarERC_Lactante(results.schwartz_bedside, mesesTotales)}`);
         if (isValid(results.ckid_u25_cr)) grados_lactante.push(`- eGFR CKiD U25 Cr: ${evaluarERC_Lactante(results.ckid_u25_cr, mesesTotales)}`);
         if (isValid(results.ekfc_cr)) grados_lactante.push(`- eGFR EKFC Cr: ${evaluarERC_Lactante(results.ekfc_cr, mesesTotales)}`);
-        
         if (isValid(results.bokenkamp)) grados_lactante.push(`- eGFR Bökenkamp (CistC): ${evaluarERC_Lactante(results.bokenkamp, mesesTotales)}`);
         if (isValid(results.ckid_u25_cistc)) grados_lactante.push(`- eGFR CKiD U25 CistC: ${evaluarERC_Lactante(results.ckid_u25_cistc, mesesTotales)}`);
         if (isValid(results.ekfc_cistc)) grados_lactante.push(`- eGFR EKFCCystC: ${evaluarERC_Lactante(results.ekfc_cistc, mesesTotales)}`);
-        
         if (isValid(results.ckid_u25_combinado)) grados_lactante.push(`- eGFR Combinado (CKiD U25): ${evaluarERC_Lactante(results.ckid_u25_combinado, mesesTotales)}`);
 
         if (grados_lactante.length > 0) {
             report.push('\n\nESTADIFICACIÓN ERC (AJUSTADA A EDAD < 2 AÑOS)\n');
             report = report.concat(grados_lactante);
+            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación ERC (Ajustada a < 2 años)</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+            grados_lactante.forEach(g => {
+                let part = g.replace('- ', '').split(': ');
+                htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(': ')}</li>`;
+            });
+            htmlEstadificacion += `</ul>`;
         }
     }
     
-    if (window.valoresFueraRango && window.valoresFueraRango.length > 0) {
+    let htmlFueraRango = "";
+    if (AppState.valoresFueraRango && AppState.valoresFueraRango.length > 0) {
         report.push('\n\nVALORES FUERA DE RANGO\n');
-        let fueraRangoEditado = window.valoresFueraRango.map(v => `-${v}`);
+        let fueraRangoEditado = AppState.valoresFueraRango.map(v => `-${v}`);
         fueraRangoEditado.forEach(v => report.push(v));
+
+        htmlFueraRango = `<h4 style="color: #dc2626; margin-bottom: 8px; border-bottom: 1px solid #fca5a5; padding-bottom: 4px; margin-top: 20px;">⚠️ Valores fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px; color: #dc2626;">`;
+        AppState.valoresFueraRango.forEach(v => {
+            let part = v.split(':');
+            htmlFueraRango += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
+        });
+        htmlFueraRango += `</ul>`;
     }
 
-    const reportTextReady = report.join('\n');
+    // AQUI ESTÁ EL CAMBIO MAESTRO:
+    // Guardamos el texto plano en el AppState, pero NO lo pintamos.
+    AppState.reportPlainText = report.join('\n');
+
+    // Construimos el HTML Premium para pintarlo en la PANTALLA
+    const boldify = (str) => {
+        let split = str.split(': ');
+        return split.length > 1 ? `<strong>${split[0]}:</strong> ${split.slice(1).join(': ')}` : str;
+    };
+
+    let html = `<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6;">`;
+    if (hayDatosAnalitica) {
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">1) Analítica</h4>`;
+        html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
+        if (hidrosalino.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Hidrosalino:</strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
+        if (fosfocalcico.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Metabolismo fosfocálcico:</strong> ${fosfocalcico.map(boldify).join(' | ')}</li>`;
+        if (hematologico.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Hematológico:</strong> ${hematologico.map(boldify).join(' | ')}</li>`;
+        if (gasometria.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Gasometría:</strong> ${gasometria.map(boldify).join(' | ')}</li>`;
+        if (orina.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Orina puntual:</strong> ${orina.map(boldify).join(' | ')}</li>`;
+        if (cocientes.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Cocientes urinarios:</strong> ${cocientes.map(boldify).join(' | ')}</li>`;
+        if (orina24h.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Orina de 24h:</strong> ${orina24h.map(boldify).join(' | ')}</li>`;
+        html += `</ul>`;
+    }
+    if (comentarioNutricional) {
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">2) Valoración Nutricional</h4>`;
+        html += `<p style="margin-top: 0; padding-left: 20px; font-style: italic;">${comentarioNutricional}</p>`;
+    }
+    if (AppState.ecografiaReportText) {
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">3) Ecografía Renal</h4>`;
+        html += `<p style="margin-top: 0; padding-left: 20px;">${AppState.ecografiaReportText.replace('-Longitud renal ecográfica: ', '<strong>Longitud renal ecográfica:</strong> ')}</p>`;
+    }
+    html += htmlEstadificacion;
+    html += htmlFueraRango;
+    html += `</div>`;
+
+    // Pintamos el HTML DIRECTAMENTE EN LA PANTALLA del usuario
     const reportContentDiv = document.getElementById('reportContent');
-    
-    reportContentDiv.innerHTML = ''; 
-    const preElement = document.createElement('pre');
-    preElement.style.fontFamily = "'Rubik', sans-serif";
-    preElement.style.fontSize = "14px";
-    preElement.style.lineHeight = "2.0";
-    preElement.style.whiteSpace = "pre-wrap";
-    
-    preElement.textContent = reportTextReady; 
-    
-    reportContentDiv.appendChild(preElement);
+    reportContentDiv.innerHTML = html;
 
     document.getElementById('reportSection').classList.remove('hidden');
-        // Hacemos el scroll hacia el contenedor principal de resultados, no al informe final
     setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
-    
 }
 
 // ===============================================
-// 7. FUNCIONES DE EXPORTACIÓN
+// 7. FUNCIONES DE EXPORTACIÓN Y COPIADO
 // ===============================================
+
 function exportToWord() {
-    const reportContent = document.getElementById('reportContent');
-    const reportText = reportContent ? reportContent.innerText : '';
-    if (!reportText.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
-    
+    const reportElement = document.getElementById('reportContent');
+    if (!reportElement || !reportElement.innerHTML.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
     try {
-        const header = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Informe</title></head><body>';
-        const formattedText = reportText.replace(/\n/g, '<br>');
-        const sourceHTML = header + '<h2>Informe Clínico Renal</h2><pre style="font-family: Arial; font-size: 12px; line-height: 1.8;">' + formattedText + '</pre></body></html>';
+        const header = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Informe Clínico</title></head><body><h2 style="color: #0891b2; font-family: Arial, sans-serif;">NefroPed - Informe de Pruebas Complementarias</h2><hr style="border: 1px solid #0891b2; margin-bottom: 15px;">`;
+        const footer = '</body></html>';
+        const sourceHTML = header + reportElement.innerHTML + footer;
         
         const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a'); link.href = url; link.download = 'informe-clinico-renal.doc';
+        const link = document.createElement('a'); link.href = url; link.download = 'informe-nefroped.doc';
         link.click(); URL.revokeObjectURL(url);
-        Swal.fire({ icon: 'success', title: 'Word descargado', timer: 1500, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Word descargado', text: 'Informe guardado con formato profesional.', timer: 2000, showConfirmButton: false });
     } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'Error exportando.' }); }
 }
 
 function exportToPDF() {
-    const reportContent = document.getElementById('reportContent');
-    const reportText = reportContent ? reportContent.innerText : '';
-    if (!reportText.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
+    // Apuntamos directamente al DIV de la pantalla que el usuario YA ESTÁ VIENDO
+    const reportElement = document.getElementById('reportContent');
+    if (!reportElement || !reportElement.innerHTML.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
     
-    try {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.setFontSize(14); doc.text('Informe Clínico Renal', 20, 20);
-        doc.setFontSize(10); const lines = doc.splitTextToSize(reportText, 170); doc.text(lines, 20, 35);
-        doc.save('informe-clinico-renal.pdf');
+    Swal.fire({ title: 'Generando PDF...', text: 'Capturando informe de pantalla...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+    const opt = {
+        margin:       15,
+        filename:     'informe-nefroped.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, // Forzamos fondo blanco por si acaso está el modo oscuro activado
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['css', 'legacy'] }
+    };
+
+    // La foto se hace a la pantalla real, infalible.
+    html2pdf().set(opt).from(reportElement).save().then(() => {
         Swal.fire({ icon: 'success', title: 'PDF descargado', timer: 1500, showConfirmButton: false });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'Error exportando.' }); }
+    }).catch(e => {
+        console.error("Error al generar PDF:", e);
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo generar el PDF.' });
+    });
 }
 
 function printReport() {
-    const reportContent = document.getElementById('reportContent');
-    const reportText = reportContent ? reportContent.innerText : '';
-    if (!reportText.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
-    
+    const reportElement = document.getElementById('reportContent');
+    if (!reportElement || !reportElement.innerHTML.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe Clínico Renal</title><style>body { font-family: 'Rubik', Arial, sans-serif; padding: 30px; } pre { font-family: 'Rubik', Arial, sans-serif; font-size: 13px; line-height: 2.0; white-space: pre-wrap; }</style></head><body><h2>Informe Clínico Renal</h2><pre>${reportText}</pre></body></html>`);
+    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Imprimir Informe</title><style>body { font-family: Arial, sans-serif; padding: 30px; color: #000; } h2 { color: #000; border-bottom: 2px solid #000; padding-bottom: 10px; } h4 { color: #333; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;} ul { margin-top: 5px; }</style></head><body><h2>NefroPed - Informe de Pruebas Complementarias</h2>${reportElement.innerHTML}</body></html>`);
     printWindow.document.close(); printWindow.focus();
-    setTimeout(() => printWindow.print(), 250);
+    setTimeout(() => printWindow.print(), 350);
 }
+
 function copyToClipboard() {
-    const reportContent = document.getElementById('reportContent');
-    const reportText = reportContent ? reportContent.innerText : '';
-    
-    if (!reportText.trim()) {
+    // A la hora de copiar, NO copiamos la pantalla, copiamos la variable secreta en Texto Plano
+    if (!AppState.reportPlainText) {
         return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
     }
     
-    navigator.clipboard.writeText(reportText).then(() => {
+    navigator.clipboard.writeText(AppState.reportPlainText).then(() => {
         Swal.fire({
-            icon: 'success',
-            title: '¡Copiado!',
-            text: 'El informe médico está listo para pegar (Ctrl+V) en la Historia Clínica.',
-            timer: 2500,
-            showConfirmButton: false,
-            backdrop: `rgba(33, 128, 141, 0.2)`
+            icon: 'success', title: '¡Texto copiado!', text: 'Formato texto plano listo para pegar en la Historia Clínica (Ctrl+V).',
+            timer: 2000, showConfirmButton: false
         });
     }).catch(err => {
-        console.error('Error al copiar: ', err);
-        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo copiar el texto automáticamente. Por favor, selecciónelo a mano.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo copiar automáticamente.' });
     });
 }
 // ===============================================
@@ -1544,7 +1636,7 @@ function generarResultadoEcografia() {
     let valDer = parseFloat(document.getElementById('rinon_derecho_mm').value);
     let talla = parseFloat(document.getElementById('talla_cm').value);
     
-    window.ecografiaReportText = ""; 
+    AppState.ecografiaReportText = ""; 
 
     if (isNaN(valIzq) && isNaN(valDer)) return "";
 
@@ -1556,7 +1648,7 @@ function generarResultadoEcografia() {
         let radioUnico = document.querySelector('input[name="radio_rinon_unico"]:checked');
         let rinonUnicoTipo = radioUnico ? radioUnico.value : 'izquierdo';
         let medido = (rinonUnicoTipo === 'izquierdo') ? valIzq : valDer;
-        let edadDec = window.edadEnAños; 
+        let edadDec = AppState.edadEnAños; 
         
         if (!isNaN(medido) && typeof edadDec === 'number') {
             let mediaEsperadaMm = Math.round(((0.4 * edadDec) + 7) * 10);
@@ -1570,7 +1662,7 @@ function generarResultadoEcografia() {
             let txtInforme = `-Longitud renal ecográfica: Riñón ${rinonUnicoTipo} ${medido}mm (${comparador} la media esperada de hipertrofia compensadora, fórmula Krill).`;
             
             htmlOut += `<div style="color: var(--color-primary); font-weight: bold;">${txtPantalla}</div>`;
-            window.ecografiaReportText = txtInforme; 
+            AppState.ecografiaReportText = txtInforme; 
         } else {
             htmlOut += `<span style="color: var(--color-text-secondary); font-size: 13px;">Introduzca la fecha de nacimiento y la medida del riñón para calcular.</span>`;
         }
@@ -1603,7 +1695,7 @@ function generarResultadoEcografia() {
             htmlOut += calcularP(valIzq, "izquierdo");
             htmlOut += calcularP(valDer, "derecho");
             
-            window.ecografiaReportText = `-Longitud renal ecográfica: ${lineasReporte.join("; ")}`; 
+            AppState.ecografiaReportText = `-Longitud renal ecográfica: ${lineasReporte.join("; ")}`; 
         }
     }
 

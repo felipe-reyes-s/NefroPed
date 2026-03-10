@@ -13,7 +13,7 @@
     <meta property="og:url" content="https://nefroped.es/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NefroPed" />
-    
+    <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="manifest" href="manifest.json" />
@@ -25,8 +25,7 @@
     <meta name="apple-mobile-web-app-title" content="NefroPed" />
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -142,7 +141,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="comentario_nutricional">Comentario Nutricional</label>
-                            <textarea id="comentario_nutricional" name="comentario_nutricional" class="form-control" placeholder="(Texto libre)" aria-label="Comentarios nutricionales"></textarea>
+                            <textarea id="comentario_nutricional" name="comentario_nutricional" class="form-control" placeholder="(Texto Libre)" aria-label="Comentarios nutricionales"></textarea>
                         </div>
                     </div>
                 </section>
@@ -372,8 +371,6 @@
         </section>
 
         <div class="field-count hidden" id="fieldCount" aria-live="polite">0/46</div>
-
-        <script src="scripts.js"></script>
       
         <div class="bibliography-container">
             <details class="bibliography-details">
@@ -465,12 +462,8 @@
             </div>
         </footer>
     </div>
-    
+    <script src="scripts.js" defer></script>
     <script data-goatcounter="https://nefroped.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 
 </html>
-
-
-
-

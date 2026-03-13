@@ -9,7 +9,8 @@
   --color-bg-base: #f1f5f9;       /* Fondo general pantalla */
   --color-bg-surface: #ffffff;    /* Fondo tarjetas/inputs */
   --color-txt-main: #0f172a;      /* Texto principal */
-  --color-txt-muted: #64748b;     /* Texto secundario */
+  --color-txt-muted:  #475569;     /* Texto secundario */
+  --color-txt-tertiary: #64748b;  /* Solo decoración, NO texto importante */
   
   --color-sem-success: #10b981;
   --color-sem-error: #ef4444;
@@ -92,7 +93,7 @@
     --color-bg-base: #0f172a;
     --color-bg-surface: #1e293b;
     --color-txt-main: #f1f5f9;
-    --color-txt-muted: #94a3b8;
+    --color-txt-muted: #cbd5e1;
     --color-sem-success: #34d399;
     --color-sem-error: #f87171;
     --color-sem-warning: #fbbf24;
@@ -233,7 +234,7 @@ h4 { font-size: var(--font-size-xl); }
 .tabs::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 8px; }
 
 .tab-button {
-  flex: 1 1 0px; min-width: 120px; padding: var(--space-12) var(--space-20);
+  flex: 1 1 0px; min-height: 44px;; min-width: 120px; padding: 14px var(--space-20);
   border: none; background: transparent; cursor: pointer;
   font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary); border-bottom: 3px solid transparent;
@@ -310,8 +311,11 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   display: inline-flex; align-items: center; justify-content: center;
   padding: var(--space-8) var(--space-16); border-radius: var(--radius-base);
   font-size: var(--font-size-base); font-weight: var(--font-weight-medium);
-  cursor: pointer; transition: all 0.2s ease; border: none; text-decoration: none; font-family: var(--font-family-base);
+  cursor: pointer; transition: all 0.2s ease; border: none; text-decoration: none; 
+  font-family: var(--font-family-base);
+  min-height: 40px;  /* ✅ R3: Garantía global WCAG para todos los botones */
 }
+
 .btn:active { transform: scale(0.96); }
 .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus-ring); }
 
@@ -327,17 +331,33 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 [data-color-scheme="dark"] .zona-botones-principales { background-color: var(--color-bg-2) !important; border-color: #475569 !important; }
 
 /* Botones específicos */
-.btn-calcular { font-size: 18px; padding: 15px 40px; font-weight: var(--font-weight-bold); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); background: var(--color-primary); color: var(--color-btn-primary-text); min-width: 280px; }
+.btn-calcular { 
+  font-size: 18px; padding: 15px 40px; font-weight: var(--font-weight-bold); 
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg); 
+  background: var(--color-primary); color: var(--color-btn-primary-text); 
+  min-width: 280px; 
+}
 .btn-calcular:hover { transform: translateY(-2px); background: var(--color-primary-hover); }
 .btn-calcular:active { transform: translateY(0); }
 
 .botones-secundarios { display: flex; gap: var(--space-12); justify-content: center; flex-wrap: wrap; }
 
-.btn-limpiar { font-size: var(--font-size-base); padding: var(--space-8) var(--space-16); background-color: #ffffff !important; color: var(--color-primary) !important; border: 1px solid var(--color-primary) !important; font-weight: 500; }
+.btn-limpiar { 
+  font-size: var(--font-size-base); padding: var(--space-8) var(--space-16); 
+  background-color: #ffffff !important; color: var(--color-primary) !important; 
+  border: 1px solid var(--color-primary) !important; font-weight: 500; 
+  min-height: 40px;  /* ✅ R3: botón Limpiar */
+}
 .btn-limpiar:hover { background-color: var(--color-bg-1) !important; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: translateY(-1px); }
 [data-color-scheme="dark"] .btn-limpiar { background-color: transparent !important; }
 
-#btn-cargar-datos-test { font-size: var(--font-size-sm); padding: var(--space-8) var(--space-16); background-color: #f8fafc; border: 1px solid var(--color-border); color: var(--color-text-secondary); border-radius: var(--radius-base); font-weight: 500; margin-left: 10px; }
+#btn-cargar-datos-test { 
+  font-size: var(--font-size-sm); padding: var(--space-8) var(--space-16); 
+  background-color: #f8fafc; border: 1px solid var(--color-border); 
+  color: var(--color-text-secondary); border-radius: var(--radius-base); 
+  font-weight: 500; margin-left: 10px; 
+  min-height: 40px;  /* ✅ R3: botón Datos Test */
+}
 #btn-cargar-datos-test:hover { background-color: #e2e8f0; color: var(--color-text); border-color: var(--color-text); }
 [data-color-scheme="dark"] #btn-cargar-datos-test { background-color: #1e293b !important; border-color: #475569 !important; color: #94a3b8 !important; }
 [data-color-scheme="dark"] #btn-cargar-datos-test:hover { background-color: #334155 !important; color: #f1f5f9 !important; border-color: #f1f5f9 !important; }
@@ -353,6 +373,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
     transition: all 0.2s ease !important; /* Magia para el movimiento suave */
     cursor: pointer;
+    min-height: 40px !important;  /* ✅ R3: botón HOY */
 }
 #btn-hoy:hover, .btn-hoy:hover { 
     border-color: var(--color-primary) !important; 
@@ -370,9 +391,39 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 #copyClipboardButton { background-color: var(--color-primary) !important; color: var(--color-btn-primary-text) !important; opacity: 1 !important; }
 #copyClipboardButton:hover { background-color: var(--color-primary-hover) !important; }
 
-.btn-theme-footer { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; font-family: var(--font-family-base); }
+.btn-theme-footer { 
+  background: transparent; border: 1px solid var(--color-border); 
+  color: var(--color-text-secondary); padding: 6px 14px; 
+  border-radius: 20px; font-size: 11px; font-weight: 500; 
+  display: inline-flex; align-items: center; gap: 8px; 
+  transition: all 0.2s ease; font-family: var(--font-family-base); 
+}
 .btn-theme-footer:hover { background: var(--color-surface); border-color: var(--color-primary); color: var(--color-primary); transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .btn-theme-footer i { font-size: 12px; }
+
+/* En pantallas muy pequeñas (iPhone SE, Xiaomi Entry) */
+@media (max-width: 380px) {
+  .btn-limpiar {
+    font-size: 14px !important;
+    padding: 10px 18px !important;
+    min-height: 44px !important;  /* ✅ WCAG mínimo */
+  }
+  #btn-cargar-datos-test {
+    font-size: 13px;
+    padding: 10px 16px;
+    min-height: 44px;
+    margin-left: 0;  /* Evitar overflow horizontal */
+  }
+  .btn-hoy, #btn-hoy {
+    min-height: 44px !important;
+    padding: 10px 0 !important;
+  }
+  /* Botones de exportación también */
+  .export-options .btn--primary {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}
 
 /* ============================================
    8. RESULTADOS Y EXPORTACIÓN
@@ -438,11 +489,19 @@ summary:focus { outline: none; }
   .container { padding: var(--space-12); }
   .form-grid, .form-grid-3col { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
+
 @media (max-width: 768px) {
   .container { padding: var(--space-8); }
   .app-header { padding: var(--space-16) 45px; }
   .app-title { font-size: var(--font-size-2xl); }
   .tab-button { font-size: var(--font-size-xs); padding: var(--space-12); }
+  
+  /* ← AQUÍ lo nuevo para tabs más altas en móvil → */
+  .tab-button {
+    padding: 14px var(--space-20) !important;  /* altura para dedo */
+    min-height: 44px !important;
+  }
+  
   .tab-content { padding: var(--space-16); }
   .form-grid, .form-grid-3col { grid-template-columns: 1fr; gap: var(--space-12); }
   .form-control { font-size: var(--font-size-lg); padding: var(--space-12); }
@@ -451,6 +510,7 @@ summary:focus { outline: none; }
   #btn-hoy, .btn-hoy { font-size: 14px !important; padding: 7px 16px !important; width: 90px !important; }
   .results-grid { grid-template-columns: 1fr !important; }
 }
+
 /* ============================================
    11. COMPONENTES FINALES (Bibliografía y Footer)
    ============================================ */
@@ -521,6 +581,23 @@ summary:focus { outline: none; }
 #empty-state-results i { font-size: 48px; color: var(--color-primary); opacity: 0.5; margin-bottom: 16px; }
 #empty-state-results h4 { margin-bottom: 8px; color: var(--color-text); }
 #empty-state-results p { font-size: 14px; max-width: 400px; margin: 0 auto; }
+#test-mode-banner {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #f59e0b;
+    color: #1e293b;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+    letter-spacing: 0.3px;
+}
+
+#test-mode-banner.visible {
+    display: block;
+}
 
 /* Color de enlaces bibliográficos y DOI en Modo Oscuro */
 [data-color-scheme="dark"] .bibliography-details a {
@@ -539,4 +616,73 @@ summary:focus { outline: none; }
 }
 [data-color-scheme="dark"] .tab-error {
     background-color: rgba(239, 68, 68, 0.15) !important;
+}
+/* ── Wrapper de inputs con unidad (sin estilos inline) ── */
+.input-unit-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    cursor: text;
+}
+
+.input-unit-wrapper .form-control {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 52px;
+}
+
+/* Unidades largas (ej: mOsm/kg) necesitan más espacio */
+.input-unit-wrapper.unit-long .form-control {
+    padding-right: 72px;
+}
+
+.unit-label {
+    position: absolute;
+    right: 12px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    user-select: none;
+}
+/* ════════════════════════════════════════════════════════════
+   13. INDICADORES ACCESIBLES A5 · DALTÓNICOS (v3 — en label)
+   El indicador va en el label, no dentro del input.
+   Sin conflictos con unidades, select, textarea ni fechas.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Base: indicador tras el texto del label ── */
+.form-group:has(.form-control.campo-valido) .form-label::after,
+.form-group:has(.form-control.campo-error)  .form-label::after {
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* ── VÁLIDO: checkmark ✓ en color primario ── */
+.form-group:has(.form-control.campo-valido) .form-label::after {
+    content: '✓';
+    color: var(--color-primary);
+}
+
+/* ── ERROR: cruz ✕ en color error ── */
+.form-group:has(.form-control.campo-error) .form-label::after {
+    content: '✕';
+    color: var(--color-error);
+}
+
+/* ── Textarea: no cambiar padding (borde es suficiente) ── */
+textarea.form-control.campo-valido,
+textarea.form-control.campo-error {
+    background-image: none !important;
+    padding-right: var(--space-12) !important;
 }

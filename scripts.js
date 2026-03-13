@@ -113,34 +113,37 @@ document.addEventListener('DOMContentLoaded', function() {
 // 4. FUNCIONES DE MODO TEST
 // ===============================================
 function activarModoTest() {
-    console.log('✅ MODO TEST ACTIVADO');
     document.body.classList.add('modo-test');
     const botonTest = document.getElementById('btn-cargar-datos-test');
     if (botonTest) botonTest.style.display = 'inline-block';
+    document.getElementById('test-mode-banner')?.classList.add('visible');
+    Swal.fire({ icon: 'success', title: '¡Modo TEST activado!', timer: 1200, showConfirmButton: false });
 }
 
 function desactivarModoTest() {
-    console.log('❌ MODO TEST DESACTIVADO');
     document.body.classList.remove('modo-test');
     const botonTest = document.getElementById('btn-cargar-datos-test');
     if (botonTest) botonTest.style.display = 'none';
+    document.getElementById('test-mode-banner')?.classList.remove('visible');
+    Swal.fire({ icon: 'info', title: 'Modo TEST desactivado', timer: 1200, showConfirmButton: false });
 }
+
 
 function setupSecretTap() {
     let testTapCount = 0;
     let tapTimer = null;
     const logo = document.querySelector('.app-title');
-    
+
     function handleTap(e) {
         if (e) e.preventDefault();
         testTapCount++;
         if (testTapCount >= 5) {
-            if(document.body.classList.contains('modo-test')) {
+            if (document.body.classList.contains('modo-test')) {
                 desactivarModoTest();
-                alert('Modo TEST desactivado');
+                Swal.fire({ icon: 'info', title: 'Modo TEST desactivado', timer: 1200, showConfirmButton: false });
             } else {
                 activarModoTest();
-                alert('¡Modo TEST activado!');
+                Swal.fire({ icon: 'success', title: '¡Modo TEST activado!', timer: 1200, showConfirmButton: false });
             }
             testTapCount = 0;
             if (tapTimer) clearTimeout(tapTimer);
@@ -152,11 +155,12 @@ function setupSecretTap() {
     }
 
     if (logo) {
-        logo.addEventListener('click', handleTap, {passive: false});
-        logo.addEventListener('touchstart', handleTap, {passive: false});
-        logo.addEventListener('touchend', e => e.preventDefault(), {passive: false});
+        logo.addEventListener('click', handleTap, { passive: false });
+        logo.addEventListener('touchstart', handleTap, { passive: false });
+        logo.addEventListener('touchend', e => e.preventDefault(), { passive: false });
     }
 }
+
 
 // ===============================================
 // GESTIÓN DEL MODO OSCURO (FOOTER)
@@ -333,8 +337,9 @@ function configureNumericValidation() {
     camposDecimales.forEach(fieldId => {
         const input = document.getElementById(fieldId);
         if (input) {
-            input.type = 'text';
-            input.setAttribute('inputmode', 'decimal');
+            input.type = 'text';  // ✅ Mantener para validación personalizada
+            input.setAttribute('inputmode', 'decimal');  // ✅ OK
+            input.setAttribute('pattern', '[0-9,.-]*');  // ✅ Añadir patrón para iOS
             input.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/\./g, ',');
                 value = (fieldId === 'exceso_bases_mmol_l') ? value.replace(/[^0-9,-]/g, '') : value.replace(/[^0-9,]/g, '');
@@ -520,6 +525,8 @@ function clearFormSilent() {
     AppState.calculatedResults = {}; 
     reportText = ''; 
     AppState.primeraValidacion = false;
+    AppState.reportPlainText = '';
+    AppState.ecografiaReportText = '';
     
     document.querySelectorAll('.tab-error').forEach(tab => tab.classList.remove('tab-error'));
     
@@ -687,7 +694,7 @@ function getFormData() {
         if (input) {
             let value = input.value;
             if (['fecha_nacimiento', 'fecha_analitica', 'sexo'].includes(fieldId)) { data[fieldId] = value; return; }
-            if (value) value = value.replace(',', '.');
+            if (value) value = value.replace(/,/g, '.'); // ✅ flag global: reemplaza todas las comas
             const numValue = parseFloat(value);
             data[fieldId] = isNaN(numValue) ? 0 : numValue;
         }
@@ -695,6 +702,7 @@ function getFormData() {
     data.edad = AppState.edadEnAños || 0;
     return data;
 }
+
 
 function calculateResults() {
     // 1. Comprobación de seguridad: Si todo está vacío, no hacemos absolutamente nada.
@@ -1299,8 +1307,7 @@ function generateReport(data) {
         return split.length > 1 ? `<strong>${split[0]}:</strong> ${split.slice(1).join(': ')}` : str;
     };
 
-    let html = `<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6;">`;
-    if (hayDatosAnalitica) {
+let html = `<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 8px;">`;    if (hayDatosAnalitica) {
         html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">1) Analítica</h4>`;
         html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
         if (hidrosalino.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Hidrosalino:</strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
@@ -1333,59 +1340,487 @@ function generateReport(data) {
 }
 
 // ===============================================
-// 7. FUNCIONES DE EXPORTACIÓN Y COPIADO
+// 7. FUNCIONES DE EXPORTACIÓN Y COPIADO genera HTML estructurado del informe
+// Usada por exportToWord, printReport (y podría usarse en PDF)
 // ===============================================
 
+function buildReportHTML() {
+    const R     = AppState.calculatedResults;
+    const edad  = AppState.edadEnAños  || 0;
+    const edadM = AppState.edadEnMeses || 0;
+    const get   = id => document.getElementById(id)?.value || '—';
+    const sexoStr = get('sexo') === 'M' ? 'Masculino' : 'Femenino';
+
+    const labels = {
+        superficiecorporal:'Superficie Corporal', imc:'IMC',
+        vpercent:'V% creatinina enz/orina',
+        schwartzneo:'Schwartz neonatal', schwartzlact:'Schwartz lactante',
+        schwartzbedside:'Schwartz Bedside', bokenkamp:'Bökenkamp',
+        ekfccr:'EKFC Cr', ekfccistc:'EKFC CistC',
+        ckidu25cr:'CKiD U25 Cr', ckidu25cistc:'CKiD U25 CistC',
+        ckidu25combinado:'CKiD U25 Combinado',
+        efna:'EF Na', efk:'EF K', efcl:'EF Cl', efau:'EF AU',
+        cacr:'Ca/Cr', mgcr:'Mg/Cr', pcr:'P/Cr', aucr:'AU/Cr',
+        albcr:'Alb/Cr', protcr:'Prot/Cr', citratocr:'Citrato/Cr',
+        oxalatocr:'Oxalato/Cr', nak:'Na/K orina', cacitrato:'Ca/Citrato', rtp:'RTP',
+        uricosuria:'Uricosuria', calciuria:'Calciuria', citraturia:'Citraturia',
+        fosfaturia:'Fosfaturia', magnesuria:'Magnesuria', oxaluria:'Oxaluria',
+        albuminuria:'Albuminuria', proteinuria:'Proteinuria',
+        proteinuriaestimada:'Proteinuria estimada'
+    };
+    const units = {
+        superficiecorporal:'m2', imc:'kg/m2', vpercent:'%',
+        schwartzneo:'ml/min/1.73m2', schwartzlact:'ml/min/1.73m2',
+        schwartzbedside:'ml/min/1.73m2', bokenkamp:'ml/min/1.73m2',
+        ekfccr:'ml/min/1.73m2', ekfccistc:'ml/min/1.73m2',
+        ckidu25cr:'ml/min/1.73m2', ckidu25cistc:'ml/min/1.73m2',
+        ckidu25combinado:'ml/min/1.73m2',
+        efna:'%', efk:'%', efcl:'%', efau:'%',
+        cacr:'mg/mg', mgcr:'mg/mg', pcr:'mg/mg', aucr:'mg/mg',
+        albcr:'mg/g', protcr:'mg/g', citratocr:'mg/mg', oxalatocr:'mg/mg',
+        nak:'', cacitrato:'', rtp:'%',
+        uricosuria:'mg/1.73m2/dia', calciuria:'mg/kg/dia', citraturia:'mg/kg/dia',
+        fosfaturia:'mg/kg/dia', magnesuria:'mg/kg/dia', oxaluria:'mg/1.73m2/dia',
+        albuminuria:'mg/1.73m2/dia', proteinuria:'mg/m2/dia',
+        proteinuriaestimada:'mg/m2/dia'
+    };
+    const secciones = [
+        { titulo:'DATOS GENERALES',
+          keys:['superficiecorporal','imc'] },
+        { titulo:'FILTRADO GLOMERULAR — eGFR (ml/min/1.73m2)',
+          keys:['vpercent','schwartzneo','schwartzlact','schwartzbedside','bokenkamp',
+                'ckidu25cr','ekfccr','ckidu25cistc','ekfccistc','ckidu25combinado'] },
+        { titulo:'EXCRECIÓN FRACCIONAL',
+          keys:['efna','efk','efcl','efau'] },
+        { titulo:'ÍNDICES URINARIOS — ORINA PUNTUAL',
+          keys:['cacr','mgcr','pcr','aucr','albcr','protcr',
+                'citratocr','oxalatocr','nak','cacitrato','rtp'] },
+        { titulo:'EXCRECIÓN EN 24 HORAS',
+          keys:['uricosuria','calciuria','citraturia','fosfaturia',
+                'magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] }
+    ];
+
+    let html = '';
+
+    // ── Cabecera ──────────────────────────────────────
+    html += `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+      <tr>
+        <td style="background:#0891b2;padding:12px 16px;">
+          <span style="color:#fff;font-size:17px;font-weight:bold;font-family:Arial,sans-serif;">NefroPed</span>
+          <span style="color:#e0f7fa;font-size:11px;font-family:Arial,sans-serif;margin-left:10px;">Informe de Pruebas Complementarias Pediátricas</span>
+        </td>
+        <td style="background:#0891b2;padding:12px 16px;text-align:right;white-space:nowrap;">
+          <span style="color:#fff;font-size:11px;font-family:Arial,sans-serif;">${new Date().toLocaleDateString('es-ES')}</span>
+        </td>
+      </tr>
+    </table>`;
+
+    // ── Datos paciente ────────────────────────────────
+    html += `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;border-collapse:collapse;">
+      <tr>
+        <td style="background:#f1f5f9;border-left:4px solid #0891b2;padding:10px 14px;">
+          <div style="font-size:10px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:5px;letter-spacing:0.5px;">DATOS DEL PACIENTE</div>
+          <div style="font-size:12px;color:#1e293b;font-family:Arial,sans-serif;margin-bottom:3px;">
+            <b>F. Nacimiento:</b> ${get('fecha_nacimiento')} &nbsp;&nbsp;
+            <b>F. Analítica:</b> ${get('fecha_analitica')} &nbsp;&nbsp;
+            <b>Edad:</b> ${edad} años ${edadM} meses
+          </div>
+          <div style="font-size:12px;color:#1e293b;font-family:Arial,sans-serif;">
+            <b>Sexo:</b> ${sexoStr} &nbsp;&nbsp;
+            <b>Peso:</b> ${get('peso_kg')} kg &nbsp;&nbsp;
+            <b>Talla:</b> ${get('talla_cm')} cm
+          </div>
+        </td>
+      </tr>
+    </table>`;
+
+    // ── Secciones de resultados ───────────────────────
+    secciones.forEach(sec => {
+        const filas = sec.keys.filter(k => R[k] && R[k] !== 0 && !isNaN(R[k]));
+        if (!filas.length) return;
+
+        html += `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+          <tr>
+            <td colspan="3" style="background:#0891b2;padding:6px 10px;">
+              <span style="color:#fff;font-size:11px;font-weight:bold;font-family:Arial,sans-serif;">${sec.titulo}</span>
+            </td>
+          </tr>
+          <tr style="background:#e2e8f0;">
+            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:50%;">PARÁMETRO</td>
+            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:25%;">VALOR</td>
+            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:25%;">RANGO NORMAL</td>
+          </tr>`;
+
+        filas.forEach((key, i) => {
+            const val = R[key];
+            const ev  = (key !== 'superficiecorporal' && key !== 'imc')
+                        ? evaluarRango(key, val, edad, edadM)
+                        : { enRango: true, rangoTexto: '' };
+
+            let valorTexto = parseFloat(val).toFixed(2);
+            if (units[key]) valorTexto += ' ' + units[key];
+
+            const bg    = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+            const color = ev.enRango ? '#0891b2' : '#dc2626';
+
+            html += `
+          <tr style="background:${bg};">
+            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${labels[key]||key}</td>
+            <td style="padding:5px 10px;font-size:12px;font-weight:bold;color:${color};font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${valorTexto}</td>
+            <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${ev.rangoTexto||'—'}</td>
+          </tr>`;
+        });
+
+        html += `</table>`;
+    });
+
+    // ── Bloques de texto libre ────────────────────────
+    const bloques = [
+        { titulo:'SEDIMENTO URINARIO',     texto: get('sedimento_urinario') },
+        { titulo:'COMENTARIO NUTRICIONAL', texto: get('comentario_nutricional') },
+        { titulo:'ECOGRAFÍA RENAL',        texto: AppState.ecografiaReportText }
+    ];
+    bloques.forEach(({ titulo, texto }) => {
+        if (!texto || texto === '—') return;
+        html += `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+          <tr>
+            <td style="background:#0891b2;padding:6px 10px;">
+              <span style="color:#fff;font-size:11px;font-weight:bold;font-family:Arial,sans-serif;">${titulo}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:10px 12px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;line-height:1.6;border:1px solid #e2e8f0;border-top:none;">${texto}</td>
+          </tr>
+        </table>`;
+    });
+
+    // ── Alertas fuera de rango ────────────────────────
+    if (AppState.valoresFueraRango?.length > 0) {
+        const items = AppState.valoresFueraRango
+            .map(v => `<li style="margin-bottom:3px;">${v}</li>`).join('');
+        html += `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+          <tr>
+            <td style="background:#fee2e2;border:2px solid #dc2626;padding:12px 16px;">
+              <div style="font-size:12px;font-weight:bold;color:#dc2626;font-family:Arial,sans-serif;margin-bottom:6px;">VALORES FUERA DE RANGO</div>
+              <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
+            </td>
+          </tr>
+        </table>`;
+    }
+
+    // ── Pie ───────────────────────────────────────────
+    html += `
+    <div style="margin-top:16px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:10px;color:#64748b;font-family:Arial,sans-serif;text-align:center;">
+        NefroPed — Calculadora de Función Renal Pediátrica
+    </div>`;
+
+    return html;
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORTAR A WORD
+// ══════════════════════════════════════════════════════
 function exportToWord() {
-    const reportElement = document.getElementById('reportContent');
-    if (!reportElement || !reportElement.innerHTML.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
+    if (!AppState.calculatedResults || Object.keys(AppState.calculatedResults).length === 0) {
+        return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.' });
+    }
     try {
-        const header = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Informe Clínico</title></head><body><h2 style="color: #0891b2; font-family: Arial, sans-serif;">NefroPed - Informe de Pruebas Complementarias</h2><hr style="border: 1px solid #0891b2; margin-bottom: 15px;">`;
-        const footer = '</body></html>';
-        const sourceHTML = header + reportElement.innerHTML + footer;
-        
-        const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a'); link.href = url; link.download = 'informe-nefroped.doc';
+        const body = buildReportHTML();
+        const fullHTML = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+            xmlns:w="urn:schemas-microsoft-com:office:word"
+            xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta charset="utf-8">
+                <title>Informe NefroPed</title>
+                <style>
+                    @page { mso-page-orientation: portrait; margin: 20mm; }
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+                    table { border-collapse: collapse; }
+                </style>
+            </head>
+            <body>${body}</body>
+        </html>`;
+        const blob = new Blob(['\ufeff', fullHTML], { type: 'application/msword' });
+        const url  = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = 'informe-nefroped.doc';
         link.click(); URL.revokeObjectURL(url);
-        Swal.fire({ icon: 'success', title: 'Word descargado', text: 'Informe guardado con formato profesional.', timer: 2000, showConfirmButton: false });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'Error exportando.' }); }
+        Swal.fire({ icon: 'success', title: 'Word descargado', timer: 2000, showConfirmButton: false });
+    } catch(e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Error exportando.' });
+    }
 }
 
 function exportToPDF() {
-    // Apuntamos directamente al DIV de la pantalla que el usuario YA ESTÁ VIENDO
-    const reportElement = document.getElementById('reportContent');
-    if (!reportElement || !reportElement.innerHTML.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
-    
-    Swal.fire({ title: 'Generando PDF...', text: 'Capturando informe de pantalla...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+    if (!AppState.calculatedResults || Object.keys(AppState.calculatedResults).length === 0) {
+        return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.' });
+    }
 
-    const opt = {
-        margin:       15,
-        filename:     'informe-nefroped.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, // Forzamos fondo blanco por si acaso está el modo oscuro activado
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['css', 'legacy'] }
-    };
+    Swal.fire({ title: 'Generando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    // La foto se hace a la pantalla real, infalible.
-    html2pdf().set(opt).from(reportElement).save().then(() => {
-        Swal.fire({ icon: 'success', title: 'PDF descargado', timer: 1500, showConfirmButton: false });
-    }).catch(e => {
-        console.error("Error al generar PDF:", e);
-        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo generar el PDF.' });
-    });
+    setTimeout(() => {
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc  = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const R    = AppState.calculatedResults;
+            const edad = AppState.edadEnAños || 0;
+            const edadM = AppState.edadEnMeses || 0;
+
+            // ── Paleta ──
+            const TEAL  = [8,145,178], RED   = [220,38,38],
+                  DARK  = [30,41,59],  GREY  = [100,116,139],
+                  LGREY = [226,232,240], WHITE = [255,255,255];
+
+            const margin = 14, pageW = 210, pageH = 297;
+            const maxW = pageW - margin * 2;
+            let y = 0;
+
+            const newPage = () => { doc.addPage(); y = margin; };
+            const check   = (h = 7) => { if (y + h > pageH - 12) newPage(); };
+
+            // ══ CABECERA ══════════════════════════════════
+            doc.setFillColor(...TEAL);
+            doc.rect(0, 0, pageW, 20, 'F');
+            doc.setTextColor(...WHITE);
+            doc.setFont('helvetica','bold'); doc.setFontSize(15);
+            doc.text('NefroPed', margin, 13);
+            doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+            doc.text('Informe de Pruebas Complementarias Pediátricas', margin + 36, 13);
+            doc.setFontSize(8);
+            doc.text(new Date().toLocaleDateString('es-ES'), pageW - margin, 13, { align:'right' });
+            y = 26;
+
+            // ══ DATOS DEL PACIENTE ═════════════════════════
+            const get = id => document.getElementById(id)?.value || '—';
+            const sexoStr = get('sexo') === 'M' ? 'Masculino' : 'Femenino';
+
+            doc.setFillColor(241,245,249);
+            doc.roundedRect(margin, y, maxW, 20, 2, 2, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...TEAL);
+            doc.text('DATOS DEL PACIENTE', margin+3, y+5.5);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+            doc.text(
+                `F. Nacimiento: ${get('fecha_nacimiento')}   F. Analítica: ${get('fecha_analitica')}   Edad: ${edad} años ${edadM} meses`,
+                margin+3, y+12
+            );
+            doc.text(
+                `Sexo: ${sexoStr}   Peso: ${get('peso_kg')} kg   Talla: ${get('talla_cm')} cm`,
+                margin+3, y+18
+            );
+            y += 25;
+
+            // ══ DEFINICIÓN DE SECCIONES ═══════════════════
+            const labels = {
+                superficiecorporal:'Superficie Corporal', imc:'IMC',
+                vpercent:'V% creatinina enz/orina',
+                schwartzneo:'Schwartz neonatal', schwartzlact:'Schwartz lactante',
+                schwartzbedside:'Schwartz Bedside', bokenkamp:'Bökenkamp',
+                ekfccr:'EKFC Cr', ekfccistc:'EKFC CistC',
+                ckidu25cr:'CKiD U25 Cr', ckidu25cistc:'CKiD U25 CistC',
+                ckidu25combinado:'CKiD U25 Combinado',
+                efna:'EF Na', efk:'EF K', efcl:'EF Cl', efau:'EF AU',
+                cacr:'Ca/Cr', mgcr:'Mg/Cr', pcr:'P/Cr', aucr:'AU/Cr',
+                albcr:'Alb/Cr', protcr:'Prot/Cr', citratocr:'Citrato/Cr',
+                oxalatocr:'Oxalato/Cr', nak:'Na/K orina', cacitrato:'Ca/Citrato', rtp:'RTP',
+                uricosuria:'Uricosuria', calciuria:'Calciuria', citraturia:'Citraturia',
+                fosfaturia:'Fosfaturia', magnesuria:'Magnesuria', oxaluria:'Oxaluria',
+                albuminuria:'Albuminuria', proteinuria:'Proteinuria',
+                proteinuriaestimada:'Proteinuria estimada'
+            };
+            const units = {
+                superficiecorporal:'m2', imc:'kg/m2', vpercent:'%',
+                schwartzneo:'ml/min/1.73m2', schwartzlact:'ml/min/1.73m2',
+                schwartzbedside:'ml/min/1.73m2', bokenkamp:'ml/min/1.73m2',
+                ekfccr:'ml/min/1.73m2', ekfccistc:'ml/min/1.73m2',
+                ckidu25cr:'ml/min/1.73m2', ckidu25cistc:'ml/min/1.73m2',
+                ckidu25combinado:'ml/min/1.73m2',
+                efna:'%', efk:'%', efcl:'%', efau:'%',
+                cacr:'mg/mg', mgcr:'mg/mg', pcr:'mg/mg', aucr:'mg/mg',
+                albcr:'mg/g', protcr:'mg/g', citratocr:'mg/mg', oxalatocr:'mg/mg',
+                nak:'', cacitrato:'', rtp:'%',
+                uricosuria:'mg/1.73m2/dia', calciuria:'mg/kg/dia', citraturia:'mg/kg/dia',
+                fosfaturia:'mg/kg/dia', magnesuria:'mg/kg/dia', oxaluria:'mg/1.73m2/dia',
+                albuminuria:'mg/1.73m2/dia', proteinuria:'mg/m2/dia',
+                proteinuriaestimada:'mg/m2/dia'
+            };
+            const secciones = [
+                { titulo:'DATOS GENERALES',
+                  keys:['superficiecorporal','imc'] },
+                { titulo:'FILTRADO GLOMERULAR — eGFR (ml/min/1.73m2)',
+                  keys:['vpercent','schwartzneo','schwartzlact','schwartzbedside','bokenkamp',
+                        'ckidu25cr','ekfccr','ckidu25cistc','ekfccistc','ckidu25combinado'] },
+                { titulo:'EXCRECIÓN FRACCIONAL',
+                  keys:['efna','efk','efcl','efau'] },
+                { titulo:'ÍNDICES URINARIOS — ORINA PUNTUAL',
+                  keys:['cacr','mgcr','pcr','aucr','albcr','protcr',
+                        'citratocr','oxalatocr','nak','cacitrato','rtp'] },
+                { titulo:'EXCRECIÓN EN 24 HORAS',
+                  keys:['uricosuria','calciuria','citraturia','fosfaturia',
+                        'magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] }
+            ];
+
+            // ══ FILAS DE RESULTADOS ════════════════════════
+            const COL_VAL  = margin + 95;
+            const COL_RANG = margin + 135;
+            let alt = false;
+
+            secciones.forEach(sec => {
+                const filas = sec.keys.filter(k => R[k] && R[k] !== 0 && !isNaN(R[k]));
+                if (!filas.length) return;
+
+                check(10 + filas.length * 7);
+
+                // Título sección
+                doc.setFillColor(...TEAL);
+                doc.rect(margin, y, maxW, 7, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                doc.setTextColor(...WHITE);
+                doc.text(sec.titulo, margin+3, y+5);
+                y += 7;
+
+                // Cabecera columnas
+                doc.setFillColor(...LGREY);
+                doc.rect(margin, y, maxW, 5.5, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.setTextColor(...GREY);
+                doc.text('PARÁMETRO', margin+3, y+4);
+                doc.text('VALOR', COL_VAL, y+4);
+                doc.text('RANGO NORMAL', COL_RANG, y+4);
+                y += 5.5;
+
+                alt = false;
+                filas.forEach(key => {
+                    check(7);
+                    const val  = R[key];
+                    const ev   = (key!=='superficiecorporal' && key!=='imc')
+                                  ? evaluarRango(key, val, edad, edadM)
+                                  : { enRango:true, rangoTexto:'' };
+                    // Construir valorTexto sin caracteres Unicode problemáticos
+                    let valorTexto = parseFloat(val).toFixed(2);
+                    if (units[key]) valorTexto += ' ' + units[key];
+                    // Sin ▲▼: el color rojo ya indica fuera de rango
+
+                    const rangStr = ev.rangoTexto || '—';
+
+                    if (alt) { doc.setFillColor(248,250,252); doc.rect(margin,y,maxW,6.5,'F'); }
+                    alt = !alt;
+
+                    // Nombre
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+                    doc.setTextColor(...DARK);
+                    doc.text(labels[key]||key, margin+3, y+4.5);
+
+                    // Valor (✅ ahora en un solo bloque de texto)
+                    doc.setFont('helvetica','bold');
+                    if (ev.enRango) {
+                        doc.setTextColor(...TEAL);
+                    } else {
+                        doc.setTextColor(...RED);
+                    }
+                    doc.text(valorTexto, COL_VAL, y+4.5);
+
+                    // Rango
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                    doc.setTextColor(...GREY);
+                    doc.text(rangStr, COL_RANG, y+4.5);
+
+                    // Separador
+                    doc.setDrawColor(...LGREY); doc.setLineWidth(0.1);
+                    doc.line(margin, y+6.5, pageW-margin, y+6.5);
+                    y += 6.5;
+                });
+                y += 4;
+            });
+
+            // ══ BLOQUE DE TEXTO LIBRE ══════════════════════
+            const bloques = [
+                { titulo:'SEDIMENTO URINARIO',     texto: get('sedimento_urinario') },
+                { titulo:'COMENTARIO NUTRICIONAL', texto: get('comentario_nutricional') },
+                { titulo:'ECOGRAFÍA RENAL',        texto: AppState.ecografiaReportText }
+            ];
+            bloques.forEach(({ titulo, texto }) => {
+                if (!texto || texto === '—') return;
+                check(18);
+                doc.setFillColor(...TEAL);
+                doc.rect(margin, y, maxW, 7, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                doc.setTextColor(...WHITE);
+                doc.text(titulo, margin+3, y+5);
+                y += 13; // ← antes era 9, insuficiente para la línea base tipográfica
+                doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+                doc.setTextColor(...DARK);
+                const lineas = doc.splitTextToSize(texto, maxW-4);
+                lineas.forEach(l => {
+                    check(6);
+                    doc.text(l, margin+2, y);
+                    y += 5.5;
+                });
+                y += 3;
+         });
+            // ══ RESUMEN ALERTAS ════════════════════════════
+            if (AppState.valoresFueraRango?.length > 0) {
+                const bH = 10 + AppState.valoresFueraRango.length * 5.5;
+                check(bH);
+                doc.setFillColor(254,242,242);
+                doc.roundedRect(margin, y, maxW, bH, 2, 2, 'F');
+                doc.setDrawColor(...RED); doc.setLineWidth(0.4);
+                doc.roundedRect(margin, y, maxW, bH, 2, 2, 'S');
+                doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+                doc.setTextColor(...RED);
+                doc.text('⚠  VALORES FUERA DE RANGO', margin+4, y+6.5);
+                y += 10;
+                doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                AppState.valoresFueraRango.forEach(v => {
+                    doc.text('• '+v, margin+6, y); y += 5.5;
+                });
+            }
+
+            // ══ PIE DE PÁGINA ══════════════════════════════
+            const total = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= total; i++) {
+                doc.setPage(i);
+                doc.setDrawColor(...LGREY); doc.setLineWidth(0.3);
+                doc.line(margin, pageH-10, pageW-margin, pageH-10);
+                doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                doc.setTextColor(...GREY);
+                doc.text('NefroPed — Calculadora de Función Renal Pediátrica', margin, pageH-6);
+                doc.text(`Página ${i} de ${total}`, pageW-margin, pageH-6, { align:'right' });
+            }
+
+            doc.save('informe-nefroped.pdf');
+            Swal.fire({ icon:'success', title:'¡PDF descargado!', timer:1500, showConfirmButton:false });
+
+        } catch(e) {
+            console.error(e);
+            Swal.fire({ icon:'error', title:'Error', text:'No se pudo generar el PDF: '+e.message });
+        }
+    }, 100);
 }
 
 function printReport() {
-    const reportElement = document.getElementById('reportContent');
-    if (!reportElement || !reportElement.innerHTML.trim()) return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.'});
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Imprimir Informe</title><style>body { font-family: Arial, sans-serif; padding: 30px; color: #000; } h2 { color: #000; border-bottom: 2px solid #000; padding-bottom: 10px; } h4 { color: #333; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;} ul { margin-top: 5px; }</style></head><body><h2>NefroPed - Informe de Pruebas Complementarias</h2>${reportElement.innerHTML}</body></html>`);
-    printWindow.document.close(); printWindow.focus();
-    setTimeout(() => printWindow.print(), 350);
+    if (!AppState.calculatedResults || Object.keys(AppState.calculatedResults).length === 0) {
+        return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.' });
+    }
+    const body = buildReportHTML();
+    const pw = window.open('', '_blank');
+    pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>NefroPed — Informe</title>
+        <style>
+            @page { margin: 15mm; }
+            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+            table { border-collapse: collapse; }
+            @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+    </head><body>${body}</body></html>`);
+    pw.document.close();
+    pw.focus();
+    setTimeout(() => pw.print(), 400);
 }
-
 function copyToClipboard() {
     // A la hora de copiar, NO copiamos la pantalla, copiamos la variable secreta en Texto Plano
     if (!AppState.reportPlainText) {
@@ -1466,63 +1901,43 @@ function inyectarUnidadesEnInputs() {
 
         for (let i = 0; i < label.childNodes.length; i++) {
             const node = label.childNodes[i];
-            
-            if (node.nodeType === 3) { 
-                const match = node.nodeValue.match(/\((.*?)\)/);
-                
+            if (node.nodeType === 3) {
+                const match = node.nodeValue.match(/\((.+?)\)\s*$/);
                 if (match) {
                     const unidad = match[1].trim();
                     const inputId = label.getAttribute('for');
-                    
-                    if (inputId === 'edad_calculada') continue;
-                    
-                    const input = document.getElementById(inputId);
-                    if (input && input.tagName.toLowerCase() === 'input') {
-                        node.nodeValue = node.nodeValue.replace(/\(.*?\)/, '').trim() + ' ';
-                        
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'input-unit-wrapper'; 
-                        wrapper.style.position = 'relative';
-                        wrapper.style.width = '100%';
-                        wrapper.style.display = 'flex'; 
-                        wrapper.style.alignItems = 'center';
-                        
-                        wrapper.addEventListener('click', function(e) {
-                            input.focus();
-                        });
+                    if (!inputId || inputId === 'edad_calculada') continue;
 
-                        input.parentNode.insertBefore(wrapper, input);
-                        wrapper.appendChild(input);
-                        
-                        const paddingDerecho = (unidad.length * 9 + 20); 
-                        input.style.width = '100%';
-                        input.style.flex = '1'; 
-                        input.style.paddingRight = paddingDerecho + 'px';
-                        input.style.boxSizing = 'border-box';
-                        
-                        const unitSpan = document.createElement('span');
-                        unitSpan.textContent = unidad;
-                        unitSpan.style.position = 'absolute';
-                        unitSpan.style.right = '12px';
-                        unitSpan.style.top = '0';
-                        unitSpan.style.bottom = '0';
-                        unitSpan.style.display = 'flex';
-                        unitSpan.style.alignItems = 'center';
-                        
-                        unitSpan.style.color = 'var(--color-text-secondary)';
-                        unitSpan.style.fontSize = '12px';
-                        unitSpan.style.fontWeight = '600';
-                        unitSpan.style.pointerEvents = 'none'; 
-                        unitSpan.style.userSelect = 'none'; 
-                        
-                        wrapper.appendChild(unitSpan);
-                    }
-                    break; 
+                    const input = document.getElementById(inputId);
+                    if (!input) continue;
+
+                    // ✅ Usamos clase CSS en vez de style.*
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'input-unit-wrapper';
+                    if (unidad.length > 9) wrapper.classList.add('unit-long');
+
+                    wrapper.addEventListener('click', () => input.focus());
+                    input.parentNode.insertBefore(wrapper, input);
+                    wrapper.appendChild(input);
+
+                    // ✅ Quitamos todos los style.* del input
+                    input.style.width = '';
+                    input.style.flex = '';
+                    input.style.paddingRight = '';
+                    input.style.boxSizing = '';
+
+                    // ✅ El span de unidad también usa clase CSS
+                    const unitSpan = document.createElement('span');
+                    unitSpan.className = 'unit-label';
+                    unitSpan.textContent = unidad;
+                    wrapper.appendChild(unitSpan);
+                    break;
                 }
             }
         }
     });
 }
+
 // ==========================================
 // FUNCIÓN AUXILIAR: LIMPIEZA DE COLORES
 // ==========================================

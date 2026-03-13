@@ -17,24 +17,28 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="manifest" href="manifest.json" />
-    
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="NefroPed" />
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-  <div class="container">
+    <div id="test-mode-banner">
+        🧪 MODO TEST ACTIVO — los datos cargados son ficticios
+    </div>
+
+    <div class="container">
         <header class="app-header">
             <h1 class="app-title">NefroPed</h1>
             <p class="app-subtitle">Calculadora Clínica de Nefrología Pediátrica</p>
         </header>
 
         <div class="tabs-container">
-           <nav class="tabs nav-tabs" role="tablist" aria-label="Secciones clínicas">
+            <nav class="tabs nav-tabs" role="tablist" aria-label="Secciones clínicas">
                 <button id="datos-basicos-tab" class="tab-button nav-link active" data-tab="datos-basicos" role="tab" aria-selected="true" aria-controls="datos-basicos" tabindex="0">📊 Datos Básicos</button>
                 <button id="bioquimica-tab" class="tab-button nav-link" data-tab="bioquimica" role="tab" aria-selected="false" aria-controls="bioquimica" tabindex="-1">🧪 Bioquímica</button>
                 <button id="gasometria-tab" class="tab-button nav-link" data-tab="gasometria" role="tab" aria-selected="false" aria-controls="gasometria" tabindex="-1">🫁 Gasometría</button>
@@ -45,300 +49,500 @@
             </nav>
 
             <form id="clinicalForm" autocomplete="off">
-                
+
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 1 · DATOS BÁSICOS                         -->
+                <!-- ═══════════════════════════════════════════════════ -->
                 <section id="datos-basicos" class="tab-content active" role="tabpanel" aria-labelledby="datos-basicos-tab">
                     <h3 class="section-title"><i class="fas fa-user"></i> Datos Básicos del Paciente</h3>
                     <div class="form-grid-3col">
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="sexo">Sexo</label>
-                            <select id="sexo" name="sexo" class="form-control" aria-label="Sexo del paciente">
+                            <select id="sexo" name="sexo" class="form-control">
                                 <option value="">Seleccione...</option>
                                 <option value="M">Hombre</option>
                                 <option value="F">Mujer</option>
                             </select>
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="fecha_nacimiento">Fecha de nacimiento</label>
-                            <input type="text" id="fecha_nacimiento" name="fecha_nacimiento" class="form-control" placeholder="DD/MM/AAAA" maxlength="10" aria-label="Fecha de nacimiento formato día mes año">
+                            <input type="text" id="fecha_nacimiento" name="fecha_nacimiento"
+                                   class="form-control" placeholder="DD/MM/AAAA" maxlength="10">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="fecha_analitica">Fecha de analítica</label>
                             <div class="fecha-wrapper">
-                                <input type="text" id="fecha_analitica" name="fecha_analitica" class="form-control" placeholder="DD/MM/AAAA" maxlength="10" aria-label="Fecha de la analítica">
-                                <button type="button" class="btn btn-hoy" onclick="rellenarFechaHoy()" aria-label="Establecer fecha de hoy">HOY</button>
+                                <input type="text" id="fecha_analitica" name="fecha_analitica"
+                                       class="form-control" placeholder="DD/MM/AAAA" maxlength="10">
+                                <!-- ✅ aria-describedby eliminado: referenciaba un ID inexistente -->
+                                <button type="button" class="btn btn-hoy"
+                                        onclick="rellenarFechaHoy()"
+                                        aria-label="Establecer fecha de analítica a hoy">
+                                    <span aria-hidden="true">HOY</span>
+                                    <span class="sr-only">Establecer fecha de analítica como hoy</span>
+                                </button>
                             </div>
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="edad_calculada">Edad</label>
-                            <input type="text" id="edad_calculada" name="edad_calculada" class="form-control" readonly placeholder="Se calcula automáticamente" aria-readonly="true">
+                            <input type="text" id="edad_calculada" name="edad_calculada"
+                                   class="form-control" readonly
+                                   placeholder="Se calcula automáticamente"
+                                   aria-readonly="true">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="peso_kg">Peso (kg)</label>
-                            <input type="number" id="peso_kg" name="peso_kg" class="form-control" step="any" min="0" max="300">
+                            <input type="number" id="peso_kg" name="peso_kg"
+                                   class="form-control" step="any" min="0" max="300">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="talla_cm">Talla (cm)</label>
-                            <input type="number" id="talla_cm" name="talla_cm" class="form-control" step="any" min="0" max="250">
+                            <input type="number" id="talla_cm" name="talla_cm"
+                                   class="form-control" step="any" min="0" max="250">
                         </div>
+
                     </div>
                 </section>
 
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 2 · BIOQUÍMICA                            -->
+                <!-- ═══════════════════════════════════════════════════ -->
                 <section id="bioquimica" class="tab-content" role="tabpanel" aria-labelledby="bioquimica-tab">
                     <h3 class="section-title"><i class="fas fa-flask"></i> Bioquímica Plasmática</h3>
                     <div class="form-grid">
+
                         <div class="form-group">
                             <label class="form-label" for="urea_mg_dl">Urea (mg/dL)</label>
-                            <input type="number" id="urea_mg_dl" name="urea_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="urea_mg_dl" name="urea_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="creatinina_enz_mg_dl">Creatinina enz (mg/dL)</label>
-                            <input type="number" id="creatinina_enz_mg_dl" name="creatinina_enz_mg_dl" class="form-control" step="any" min="0" aria-label="Creatinina enzimática en miligramos por decilitro">
+                            <input type="number" id="creatinina_enz_mg_dl" name="creatinina_enz_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
-                            <label class="form-label" for="au_plasma_mg_dl">AU plasma (mg/dL)</label>
-                            <input type="number" id="au_plasma_mg_dl" name="au_plasma_mg_dl" class="form-control" step="any" min="0" aria-label="Ácido Úrico en plasma">
+                            <!-- ✅ aria-label eliminado · <abbr> añadido para la abreviatura médica -->
+                            <label class="form-label" for="au_plasma_mg_dl">
+                                <abbr title="Ácido Úrico">AU</abbr> plasma (mg/dL)
+                            </label>
+                            <input type="number" id="au_plasma_mg_dl" name="au_plasma_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="na_plasma_meq_l">Na plasma (mEq/L)</label>
-                            <input type="number" id="na_plasma_meq_l" name="na_plasma_meq_l" class="form-control" step="any" min="0" aria-label="Sodio plasmático">
+                            <input type="number" id="na_plasma_meq_l" name="na_plasma_meq_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="k_plasma_meq_l">K plasma (mEq/L)</label>
-                            <input type="number" id="k_plasma_meq_l" name="k_plasma_meq_l" class="form-control" step="any" min="0" aria-label="Potasio plasmático">
+                            <input type="number" id="k_plasma_meq_l" name="k_plasma_meq_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="cl_plasma_meq_l">Cl plasma (mEq/L)</label>
-                            <input type="number" id="cl_plasma_meq_l" name="cl_plasma_meq_l" class="form-control" step="any" min="0" aria-label="Cloro plasmático">
+                            <input type="number" id="cl_plasma_meq_l" name="cl_plasma_meq_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="fosfatasa_alcalina_u_l">Fosfatasa alcalina (U/L)</label>
-                            <input type="number" id="fosfatasa_alcalina_u_l" name="fosfatasa_alcalina_u_l" class="form-control" step="any" min="0">
+                            <input type="number" id="fosfatasa_alcalina_u_l" name="fosfatasa_alcalina_u_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="ca_plasma_mg_dl">Ca plasma (mg/dL)</label>
-                            <input type="number" id="ca_plasma_mg_dl" name="ca_plasma_mg_dl" class="form-control" step="any" min="0" aria-label="Calcio plasmático">
+                            <input type="number" id="ca_plasma_mg_dl" name="ca_plasma_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="p_plasma_mg_dl">P plasma (mg/dL)</label>
-                            <input type="number" id="p_plasma_mg_dl" name="p_plasma_mg_dl" class="form-control" step="any" min="0" aria-label="Fósforo plasmático">
+                            <input type="number" id="p_plasma_mg_dl" name="p_plasma_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="mg_plasma_mg_dl">Mg plasma (mg/dL)</label>
-                            <input type="number" id="mg_plasma_mg_dl" name="mg_plasma_mg_dl" class="form-control" step="any" min="0" aria-label="Magnesio plasmático">
+                            <input type="number" id="mg_plasma_mg_dl" name="mg_plasma_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
-                            <label class="form-label" for="pth_pg_ml">PTH (pg/mL)</label>
-                            <input type="number" id="pth_pg_ml" name="pth_pg_ml" class="form-control" step="any" min="0" aria-label="Paratohormona">
+                            <!-- ✅ aria-label eliminado · <abbr> añadido para la abreviatura médica -->
+                            <label class="form-label" for="pth_pg_ml">
+                                <abbr title="Parathormona">PTH</abbr> (pg/mL)
+                            </label>
+                            <input type="number" id="pth_pg_ml" name="pth_pg_ml"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="vitamina_d_ng_ml">Vitamina D (ng/mL)</label>
-                            <input type="number" id="vitamina_d_ng_ml" name="vitamina_d_ng_ml" class="form-control" step="any" min="0">
+                            <input type="number" id="vitamina_d_ng_ml" name="vitamina_d_ng_ml"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="cistatina_c_mg_l">Cistatina C (mg/L)</label>
-                            <input type="number" id="cistatina_c_mg_l" name="cistatina_c_mg_l" class="form-control" step="any" min="0">
+                            <input type="number" id="cistatina_c_mg_l" name="cistatina_c_mg_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="comentario_nutricional">Comentario Nutricional</label>
-                            <textarea id="comentario_nutricional" name="comentario_nutricional" class="form-control" placeholder="(Texto Libre)" aria-label="Comentarios nutricionales"></textarea>
+                            <textarea id="comentario_nutricional" name="comentario_nutricional"
+                                      class="form-control" placeholder="(Texto Libre)"></textarea>
                         </div>
+
                     </div>
                 </section>
 
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 3 · GASOMETRÍA                            -->
+                <!-- ═══════════════════════════════════════════════════ -->
                 <section id="gasometria" class="tab-content" role="tabpanel" aria-labelledby="gasometria-tab">
                     <h3 class="section-title"><i class="fas fa-lungs"></i> Gasometría</h3>
                     <div class="form-grid">
+
                         <div class="form-group">
                             <label class="form-label" for="ph_plasma">pH plasma</label>
-                            <input type="number" id="ph_plasma" name="ph_plasma" class="form-control" step="any" min="6" max="8">
+                            <input type="number" id="ph_plasma" name="ph_plasma"
+                                   class="form-control" step="any" min="6" max="8">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="pco2_mmhg">pCO2 (mmHg)</label>
-                            <input type="number" id="pco2_mmhg" name="pco2_mmhg" class="form-control" step="any" min="0" aria-label="Presión parcial de dióxido de carbono">
+                            <input type="number" id="pco2_mmhg" name="pco2_mmhg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="hco3_mmol_l">HCO3 (mmol/L)</label>
-                            <input type="number" id="hco3_mmol_l" name="hco3_mmol_l" class="form-control" step="any" min="0" aria-label="Bicarbonato">
+                            <input type="number" id="hco3_mmol_l" name="hco3_mmol_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="exceso_bases_mmol_l">Exceso bases (mmol/L)</label>
-                            <input type="number" id="exceso_bases_mmol_l" name="exceso_bases_mmol_l" class="form-control" step="any" min="-30" max="30">
+                            <input type="number" id="exceso_bases_mmol_l" name="exceso_bases_mmol_l"
+                                   class="form-control" step="any" min="-30" max="30">
                         </div>
+
                     </div>
                 </section>
 
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 4 · ORINA PUNTUAL                         -->
+                <!-- ═══════════════════════════════════════════════════ -->
                 <section id="orina-puntual" class="tab-content" role="tabpanel" aria-labelledby="orina-puntual-tab">
                     <h3 class="section-title"><i class="fas fa-tint"></i> Análisis de Orina Puntual</h3>
                     <div class="form-grid">
+
                         <div class="form-group">
                             <label class="form-label" for="densidad">Densidad</label>
-                            <input type="number" id="densidad" name="densidad" class="form-control" step="any" min="1000" max="1040">
+                            <input type="number" id="densidad" name="densidad"
+                                   class="form-control" step="any" min="1000" max="1040">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="ph_orina">pH orina</label>
-                            <input type="number" id="ph_orina" name="ph_orina" class="form-control" step="any" min="4" max="9">
+                            <input type="number" id="ph_orina" name="ph_orina"
+                                   class="form-control" step="any" min="4" max="9">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="sedimento_urinario">Sedimento Urinario</label>
-                            <textarea id="sedimento_urinario" name="sedimento_urinario" class="form-control" placeholder="(Texto Libre)"></textarea>
+                            <textarea id="sedimento_urinario" name="sedimento_urinario"
+                                      class="form-control" placeholder="(Texto Libre)"></textarea>
                         </div>
+
                         <div class="form-group">
-                            <label class="form-label" for="au_orina_mg_dl">AU orina (mg/dL)</label>
-                            <input type="number" id="au_orina_mg_dl" name="au_orina_mg_dl" class="form-control" step="any" min="0" aria-label="Ácido Úrico en orina">
+                            <!-- ✅ aria-label eliminado · <abbr> añadido para la abreviatura médica -->
+                            <label class="form-label" for="au_orina_mg_dl">
+                                <abbr title="Ácido Úrico">AU</abbr> orina (mg/dL)
+                            </label>
+                            <input type="number" id="au_orina_mg_dl" name="au_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="na_orina_meq_l">Na orina (mEq/L)</label>
-                            <input type="number" id="na_orina_meq_l" name="na_orina_meq_l" class="form-control" step="any" min="0" aria-label="Sodio en orina">
+                            <input type="number" id="na_orina_meq_l" name="na_orina_meq_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="k_orina_meq_l">K orina (mEq/L)</label>
-                            <input type="number" id="k_orina_meq_l" name="k_orina_meq_l" class="form-control" step="any" min="0" aria-label="Potasio en orina">
+                            <input type="number" id="k_orina_meq_l" name="k_orina_meq_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="cl_orina_meq_l">Cl orina (mEq/L)</label>
-                            <input type="number" id="cl_orina_meq_l" name="cl_orina_meq_l" class="form-control" step="any" min="0" aria-label="Cloro en orina">
+                            <input type="number" id="cl_orina_meq_l" name="cl_orina_meq_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="osmolalidad_orina_mosm_kg">Osmolalidad (mOsm/Kg)</label>
-                            <input type="number" id="osmolalidad_orina_mosm_kg" name="osmolalidad_orina_mosm_kg" class="form-control" step="any" min="0">
+                            <input type="number" id="osmolalidad_orina_mosm_kg" name="osmolalidad_orina_mosm_kg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="ca_orina_mg_dl">Ca orina (mg/dL)</label>
-                            <input type="number" id="ca_orina_mg_dl" name="ca_orina_mg_dl" class="form-control" step="any" min="0" aria-label="Calcio en orina">
+                            <input type="number" id="ca_orina_mg_dl" name="ca_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="fosforo_orina_mg_dl">Fósforo orina (mg/dL)</label>
-                            <input type="number" id="fosforo_orina_mg_dl" name="fosforo_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="fosforo_orina_mg_dl" name="fosforo_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="magnesio_orina_mg_dl">Magnesio orina (mg/dL)</label>
-                            <input type="number" id="magnesio_orina_mg_dl" name="magnesio_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="magnesio_orina_mg_dl" name="magnesio_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="albumina_orina_mg_dl">Albúmina orina (mg/dL)</label>
-                            <input type="number" id="albumina_orina_mg_dl" name="albumina_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="albumina_orina_mg_dl" name="albumina_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="creatinina_orina_mg_dl">Creatinina orina (mg/dL)</label>
-                            <input type="number" id="creatinina_orina_mg_dl" name="creatinina_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="creatinina_orina_mg_dl" name="creatinina_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="proteinas_orina_mg_dl">Proteínas orina (mg/dL)</label>
-                            <input type="number" id="proteinas_orina_mg_dl" name="proteinas_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="proteinas_orina_mg_dl" name="proteinas_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="citrato_orina_mg_dl">Citrato orina (mg/dL)</label>
-                            <input type="number" id="citrato_orina_mg_dl" name="citrato_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="citrato_orina_mg_dl" name="citrato_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="oxalato_orina_mg_dl">Oxalato orina (mg/dL)</label>
-                            <input type="number" id="oxalato_orina_mg_dl" name="oxalato_orina_mg_dl" class="form-control" step="any" min="0">
+                            <input type="number" id="oxalato_orina_mg_dl" name="oxalato_orina_mg_dl"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                     </div>
                 </section>
-<section id="hematologia" class="tab-content" role="tabpanel" aria-labelledby="hematologia-tab">
+
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 5 · HEMATOLOGÍA                           -->
+                <!-- ═══════════════════════════════════════════════════ -->
+                <section id="hematologia" class="tab-content" role="tabpanel" aria-labelledby="hematologia-tab">
                     <h3 class="section-title"><i class="fas fa-syringe"></i> Hematología</h3>
                     <div class="form-grid-3col">
+
                         <div class="form-group">
-                            <label class="form-label" for="hb_g_l">Hb (g/L)</label>
-                            <input type="number" id="hb_g_l" name="hb_g_l" class="form-control" step="any" min="0" aria-label="Hemoglobina en gramos por litro">
+                            <!-- ✅ aria-label eliminado · <abbr> añadido para la abreviatura médica -->
+                            <label class="form-label" for="hb_g_l">
+                                <abbr title="Hemoglobina">Hb</abbr> (g/L)
+                            </label>
+                            <input type="number" id="hb_g_l" name="hb_g_l"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="ferritina_ng_ml">Ferritina (ng/mL)</label>
-                            <input type="number" id="ferritina_ng_ml" name="ferritina_ng_ml" class="form-control" step="any" min="0">
+                            <input type="number" id="ferritina_ng_ml" name="ferritina_ng_ml"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
-                            <label class="form-label" for="ist_percent">IST (%)</label>
-                            <input type="number" id="ist_percent" name="ist_percent" class="form-control" step="any" min="0" max="100" aria-label="Índice de Saturación de Transferrina">
+                            <!-- ✅ aria-label eliminado · <abbr> añadido para la abreviatura médica -->
+                            <label class="form-label" for="ist_percent">
+                                <abbr title="Índice de Saturación de Transferrina">IST</abbr> (%)
+                            </label>
+                            <input type="number" id="ist_percent" name="ist_percent"
+                                   class="form-control" step="any" min="0" max="100">
                         </div>
+
                     </div>
                 </section>
+
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 6 · ORINA 24H                             -->
+                <!-- ═══════════════════════════════════════════════════ -->
                 <section id="orina-24h" class="tab-content" role="tabpanel" aria-labelledby="orina-24h-tab">
                     <h3 class="section-title"><i class="fas fa-clock"></i> Análisis de Orina 24 Horas</h3>
                     <div class="form-grid">
+
                         <div class="form-group">
-                            <label class="form-label" for="au_24h_mg">AU 24H (mg/24h)</label>
-                            <input type="number" id="au_24h_mg" name="au_24h_mg" class="form-control" step="any" min="0" aria-label="Ácido Úrico en 24 horas">
+                            <!-- ✅ aria-label eliminado · <abbr> añadido para la abreviatura médica -->
+                            <label class="form-label" for="au_24h_mg">
+                                <abbr title="Ácido Úrico">AU</abbr> 24H (mg/24h)
+                            </label>
+                            <input type="number" id="au_24h_mg" name="au_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="ca_24h_mg">Ca 24H (mg/24h)</label>
-                            <input type="number" id="ca_24h_mg" name="ca_24h_mg" class="form-control" step="any" min="0" aria-label="Calcio en 24 horas">
+                            <input type="number" id="ca_24h_mg" name="ca_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="p_24h_mg">P 24H (mg/24h)</label>
-                            <input type="number" id="p_24h_mg" name="p_24h_mg" class="form-control" step="any" min="0" aria-label="Fósforo en 24 horas">
+                            <input type="number" id="p_24h_mg" name="p_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
+                            <!-- ✅ aria-label eliminado: el <label for> ya lo describe correctamente -->
                             <label class="form-label" for="mg_24h_mg">Mg 24H (mg/24h)</label>
-                            <input type="number" id="mg_24h_mg" name="mg_24h_mg" class="form-control" step="any" min="0" aria-label="Magnesio en 24 horas">
+                            <input type="number" id="mg_24h_mg" name="mg_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="albumina_24h_mg">Albúmina 24H (mg/24h)</label>
-                            <input type="number" id="albumina_24h_mg" name="albumina_24h_mg" class="form-control" step="any" min="0">
+                            <input type="number" id="albumina_24h_mg" name="albumina_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="proteinas_24h_mg">Proteínas 24H (mg/24h)</label>
-                            <input type="number" id="proteinas_24h_mg" name="proteinas_24h_mg" class="form-control" step="any" min="0">
+                            <input type="number" id="proteinas_24h_mg" name="proteinas_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="citrato_24h_mg">Citrato 24H (mg/24h)</label>
-                            <input type="number" id="citrato_24h_mg" name="citrato_24h_mg" class="form-control" step="any" min="0">
+                            <input type="number" id="citrato_24h_mg" name="citrato_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="oxalato_24h_mg">Oxalato 24H (mg/24h)</label>
-                            <input type="number" id="oxalato_24h_mg" name="oxalato_24h_mg" class="form-control" step="any" min="0">
+                            <input type="number" id="oxalato_24h_mg" name="oxalato_24h_mg"
+                                   class="form-control" step="any" min="0">
                         </div>
+
                     </div>
                 </section>
-                    <section id="ecografia" class="tab-content" role="tabpanel" aria-labelledby="ecografia-tab">
+
+                <!-- ═══════════════════════════════════════════════════ -->
+                <!--  PESTAÑA 7 · ECOGRAFÍA                             -->
+                <!-- ═══════════════════════════════════════════════════ -->
+                <section id="ecografia" class="tab-content" role="tabpanel" aria-labelledby="ecografia-tab">
                     <h3 class="section-title"><i class="fas fa-wave-square"></i> Ecografía Renal</h3>
                     <div class="form-grid">
-                          <div class="form-group span-2" style="display: flex; flex-direction: column; justify-content: center;">
-                            <label class="form-label">Condición anatómica</label>
-                            <div style="display: flex; align-items: center; gap: 15px; background: var(--color-bg-1); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--color-border);">
-                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
-                                    <input type="checkbox" id="check_monoreno" onchange="toggleMonoreno(this.checked)" style="width: 16px; height: 16px; accent-color: var(--color-primary);">
-                                    Paciente Monoreno
-                                </label>
-                                
-                                <div id="opciones_monoreno" style="display: none; align-items: center; gap: 10px; margin-left: 10px; border-left: 1px solid var(--color-border); padding-left: 15px;">
-                                    <span style="font-size: 12px; color: var(--color-text-secondary);">Presente:</span>
-                                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
-                                        <input type="radio" name="radio_rinon_unico" value="izquierdo" onchange="seleccionarRinonUnico('izquierdo')" style="accent-color: var(--color-primary);" checked> Izq
+
+                        <!-- ✅ ANTES: <label> suelto sin input asociado.
+                             AHORA:  <fieldset>/<legend> para agrupar el checkbox + radios
+                             semánticamente. Los lectores de pantalla anuncian el grupo
+                             completo antes de cada control interno. -->
+                        <div class="form-group span-2" style="display: flex; flex-direction: column; justify-content: center;">
+                            <fieldset class="fieldset-anatomico" style="border: none; margin: 0; padding: 0;">
+                                <legend class="form-label">Condición anatómica</legend>
+                                <div style="display: flex; align-items: center; gap: 15px; background: var(--color-bg-1); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--color-border);">
+
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                                        <input type="checkbox" id="check_monoreno"
+                                               onchange="toggleMonoreno(this.checked)"
+                                               style="width: 16px; height: 16px; accent-color: var(--color-primary);">
+                                        Paciente Monoreno
                                     </label>
-                                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
-                                        <input type="radio" name="radio_rinon_unico" value="derecho" onchange="seleccionarRinonUnico('derecho')" style="accent-color: var(--color-primary);"> Der
-                                    </label>
+
+                                    <div id="opciones_monoreno" style="display: none; align-items: center; gap: 10px; margin-left: 10px; border-left: 1px solid var(--color-border); padding-left: 15px;">
+                                        <!-- ✅ Segundo fieldset anidado para los radios de lateralidad -->
+                                        <fieldset style="border: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 10px;">
+                                            <legend style="font-size: 12px; color: var(--color-text-secondary); float: left; margin-right: 8px;">Presente:</legend>
+                                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
+                                                <input type="radio" name="radio_rinon_unico" value="izquierdo"
+                                                       onchange="seleccionarRinonUnico('izquierdo')"
+                                                       style="accent-color: var(--color-primary);" checked>
+                                                Izquierdo
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
+                                                <input type="radio" name="radio_rinon_unico" value="derecho"
+                                                       onchange="seleccionarRinonUnico('derecho')"
+                                                       style="accent-color: var(--color-primary);">
+                                                Derecho
+                                            </label>
+                                        </fieldset>
+                                    </div>
+
                                 </div>
-                            </div>
+                            </fieldset>
                         </div>
+
                         <div class="form-group">
                             <label class="form-label" for="rinon_izquierdo_mm">Riñón Izquierdo (mm)</label>
-                            <input type="number" id="rinon_izquierdo_mm" name="rinon_izquierdo_mm" class="form-control" step="any" min="0" max="250">
+                            <input type="number" id="rinon_izquierdo_mm" name="rinon_izquierdo_mm"
+                                   class="form-control" step="any" min="0" max="250">
                         </div>
 
                         <div class="form-group">
                             <label class="form-label" for="rinon_derecho_mm">Riñón Derecho (mm)</label>
-                            <input type="number" id="rinon_derecho_mm" name="rinon_derecho_mm" class="form-control" step="any" min="0" max="250">
+                            <input type="number" id="rinon_derecho_mm" name="rinon_derecho_mm"
+                                   class="form-control" step="any" min="0" max="250">
                         </div>
 
-                      
                     </div>
                 </section>
-                
+
             </form>
         </div>
 
         <div class="zona-botones-principales">
-            <button type="button" class="btn btn-primary btn-lg btn-calcular" id="calculateButton" aria-label="Calcular todos los resultados">
+            <button type="button" class="btn btn-primary btn-lg btn-calcular"
+                    id="calculateButton" aria-label="Calcular todos los resultados">
                 Calcular Resultados <i class="fas fa-calculator icon-right"></i>
             </button>
-            
             <div class="botones-secundarios">
-                <button type="button" class="btn btn-outline-secondary btn-sm btn-limpiar" onclick="confirmarLimpiarFormulario()" aria-label="Borrar todos los datos">
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-limpiar"
+                        onclick="confirmarLimpiarFormulario()" aria-label="Borrar todos los datos">
                     Limpiar <i class="fas fa-trash-alt icon-right"></i>
                 </button>
-                <button id="btn-cargar-datos-test" class="btn btn-sm" style="display:none;" onclick="loadSampleData()">
+                <button id="btn-cargar-datos-test" class="btn btn-sm"
+                        style="display:none;" onclick="loadSampleData()">
                     Datos de ejemplo <i class="fas fa-vial icon-right"></i>
                 </button>
             </div>
@@ -346,21 +550,17 @@
 
         <section id="results" class="results-section">
             <h3><i class="fas fa-chart-line"></i> Resultados Calculados</h3>
-            
             <div id="empty-state-results">
                 <i class="fas fa-clipboard-list"></i>
                 <h4>Aún no hay datos</h4>
                 <p>Introduce los parámetros clínicos del paciente en las pestañas superiores y pulsa "Calcular Resultados" para generar el Informe de Pruebas Complementarias.</p>
             </div>
-
-            <div class="results-grid hidden" id="resultsGrid">
-            </div>
+            <div class="results-grid hidden" id="resultsGrid"></div>
         </section>
 
         <section id="reportSection" class="report-section hidden">
             <h3><i class="fas fa-file-medical"></i> Informe de Pruebas Complementarias</h3>
-            <div class="report-content" id="reportContent">
-                </div>
+            <div class="report-content" id="reportContent"></div>
             <div class="export-options">
                 <button type="button" class="btn btn--primary" id="copyClipboardButton">📋 Copiar al portapapeles</button>
                 <button type="button" class="btn btn--primary" id="exportWordButton">📄 Descargar Word (.docx)</button>
@@ -370,7 +570,7 @@
         </section>
 
         <div class="field-count hidden" id="fieldCount" aria-live="polite">0/46</div>
-      
+
         <div class="bibliography-container">
             <details class="bibliography-details">
                 <summary class="bibliography-summary">
@@ -378,54 +578,53 @@
                 </summary>
                 <div class="bibliography-content">
                     <ul class="bibliography-list">
-    <li class="bibliography-item">
-        <strong>eGFR CKiD U25 (Cr y CistC):</strong> Nyman U, Björk J, Berg U, Bökenkamp A, Dubourg L, Goffin K, Grubb A, Hansson M, Larsson A, Littmann K, Åsling-Monemi K, Pottel H, Delanaye P. <em>The Modified CKiD Study Estimated GFR Equations for Children and Young Adults Under 25 Years of Age: Performance in a European Multicenter Cohort.</em> Am J Kidney Dis. 2022 Dec;80(6):807-810.<a href="https://10.1053/j.ajkd.2022.02.018" target="_blank" rel="noopener">doi:10.1053/j.ajkd.2022.02.018</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>eGFR EKFC (Cr):</strong>Delanaye P, Rule AD, Schaeffner E, Cavalier E, Shi J, Hoofnagle AN, Nyman U, Björk J, Pottel H. <em>Performance of the European Kidney Function Consortium (EKFC) creatinine-based equation in United States cohorts.</em> Kidney Int. 2024 Mar;105(3):629-637.<a href="https://doi: 10.1016/j.kint.2023.11.024" target="_blank" rel="noopener">doi: 10.1016/j.kint.2023.11.024</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>eGFR EKFCCystc (CistC):</strong>Pottel H, Nyman U, Björk J, Berg U, Bökenkamp A, Dubourg LD, Lemoine S, Goffin K, Grubb A, Hansson M, Larsson A, Littmann K, Åsling-Monemi K, Adeli K, Cavalier E, Delanaye P.<em> Extending the cystatin C based EKFC-equation to children - validation results from Europe.</em> Pediatr Nephrol. 2024 Apr;39(4):1177-1183.<a href="https://doi: 10.1007/s00467-023-06192-6" target="_blank" rel="noopener">doi: 10.1007/s00467-023-06192-6</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>eGFR Schwartz (Neonatal y Lactante):</strong> Schwartz GJ, et al. The use of plasma creatinine concentration for estimating glomerular filtration rate in infants, children, and adolescents. <em>Pediatr Clin North Am.</em> 1987;34(3):571-590. <a href="https://doi.org/10.1016/S0031-3955(16)36251-4" target="_blank" rel="noopener">doi:10.1016/S0031-3955(16)36251-4</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Coeficiente K neonatos a término:</strong> Smeets NJL, et al. Maturation of GFR in Term-Born Neonates: An Individual Participant Data Meta-Analysis. <em>J Am Soc Nephrol.</em> 2022;33(7):1277-1292. <a href="https://doi.org/10.1681/ASN.2021101326" target="_blank" rel="noopener">doi:10.1681/ASN.2021101326</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Coeficiente K lactante menor de 1 año:</strong> Pottel H, et al. On the relationship between glomerular filtration rate and serum creatinine in children. <em>Pediatr Nephrol.</em> 2010;25(5):927-34. <a href="https://doi.org/10.1007/s00467-009-1389-1" target="_blank" rel="noopener">doi:10.1007/s00467-009-1389-1</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>eGFR Bökenkamp (CistC en &lt; 1 año):</strong> Bökenkamp A, et al. Cystatin C--a new marker of glomerular filtration rate in children independent of age and height. <em>Pediatrics.</em> 1998;101(5):875-881. <a href="https://doi.org/10.1542/peds.101.5.875" target="_blank" rel="noopener">doi:10.1542/peds.101.5.875</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Estadificación KDIGO (&gt; 2 años):</strong>Kidney Disease: <em>Improving Global Outcomes (KDIGO) CKD Work Group. KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease.</em> Kidney Int. 2024 Apr;105(4S):S117-S314.<a href="https://DOI: 10.1016/j.kint.2023.10.018" target="_blank" rel="noopener">doi: 10.1016/j.kint.2023.10.018</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Estadificación ERC (&lt; 2 años):</strong> Rangos adaptados al desarrollo de la función renal pediátrica normal por percentiles durante los primeros 24 meses de vida.
-    </li>
-    <li class="bibliography-item">
-        <strong>Excreciones Fraccionales y Cocientes:</strong> Protocolos diagnósticos y terapéuticos de Nefrología Pediátrica. <em>Asociación Española de Pediatría (AEP).</em> <a href="https://static.aeped.es/02_evaluac_func_5c0bcc1328.pdf" target="_blank" rel="noopener">Protocolos AENP</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Valores de Referencia en Orina:</strong> Avner ED, et al. <em>Pediatric Nephrology.</em> 7th ed. Springer; 2016. <a href="https://doi.org/10.1007/978-3-662-43596-0" target="_blank" rel="noopener">doi:10.1007/978-3-662-43596-0</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Longitud Renal Pediátrica (LMS Percentiles):</strong> Obrycki Ł, et al. Kidney length normative values in children aged 0-19 years - a multicenter study. <em>Pediatr Nephrol.</em> 2022;37(5):1075-1085. <a href="https://doi.org/10.1007/s00467-021-05303-5" target="_blank" rel="noopener">doi:10.1007/s00467-021-05303-5</a>
-    </li>
-    <li class="bibliography-item">
-        <strong>Hipertrofia Compensadora (Riñón Único):</strong> Krill A, et al. Evaluating compensatory hypertrophy: a growth curve specific for solitary functioning kidneys. <em>J Urol.</em> 2012;188(4 Suppl):1613-1617. <a href="https://doi.org/10.1016/j.juro.2012.02.035" target="_blank" rel="noopener">doi:10.1016/j.juro.2012.02.035</a>
-    </li>
-</ul>
-
+                        <li class="bibliography-item">
+                            <strong>eGFR CKiD U25 (Cr y CistC):</strong> Nyman U, Björk J, Berg U, Bökenkamp A, Dubourg L, Goffin K, Grubb A, Hansson M, Larsson A, Littmann K, Åsling-Monemi K, Pottel H, Delanaye P. <em>The Modified CKiD Study Estimated GFR Equations for Children and Young Adults Under 25 Years of Age: Performance in a European Multicenter Cohort.</em> Am J Kidney Dis. 2022 Dec;80(6):807-810. <a href="https://doi.org/10.1053/j.ajkd.2022.02.018" target="_blank" rel="noopener">doi:10.1053/j.ajkd.2022.02.018</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>eGFR EKFC (Cr):</strong> Delanaye P, Rule AD, Schaeffner E, Cavalier E, Shi J, Hoofnagle AN, Nyman U, Björk J, Pottel H. <em>Performance of the European Kidney Function Consortium (EKFC) creatinine-based equation in United States cohorts.</em> Kidney Int. 2024 Mar;105(3):629-637. <a href="https://doi.org/10.1016/j.kint.2023.11.024" target="_blank" rel="noopener">doi:10.1016/j.kint.2023.11.024</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>eGFR EKFCCystc (CistC):</strong> Pottel H, Nyman U, Björk J, Berg U, Bökenkamp A, Dubourg LD, Lemoine S, Goffin K, Grubb A, Hansson M, Larsson A, Littmann K, Åsling-Monemi K, Adeli K, Cavalier E, Delanaye P. <em>Extending the cystatin C based EKFC-equation to children - validation results from Europe.</em> Pediatr Nephrol. 2024 Apr;39(4):1177-1183. <a href="https://doi.org/10.1007/s00467-023-06192-6" target="_blank" rel="noopener">doi:10.1007/s00467-023-06192-6</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>eGFR Schwartz (Neonatal y Lactante):</strong> Schwartz GJ, et al. The use of plasma creatinine concentration for estimating glomerular filtration rate in infants, children, and adolescents. <em>Pediatr Clin North Am.</em> 1987;34(3):571-590. <a href="https://doi.org/10.1016/S0031-3955(16)36251-4" target="_blank" rel="noopener">doi:10.1016/S0031-3955(16)36251-4</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Coeficiente K neonatos a término:</strong> Smeets NJL, et al. Maturation of GFR in Term-Born Neonates: An Individual Participant Data Meta-Analysis. <em>J Am Soc Nephrol.</em> 2022;33(7):1277-1292. <a href="https://doi.org/10.1681/ASN.2021101326" target="_blank" rel="noopener">doi:10.1681/ASN.2021101326</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Coeficiente K lactante menor de 1 año:</strong> Pottel H, et al. On the relationship between glomerular filtration rate and serum creatinine in children. <em>Pediatr Nephrol.</em> 2010;25(5):927-34. <a href="https://doi.org/10.1007/s00467-009-1389-1" target="_blank" rel="noopener">doi:10.1007/s00467-009-1389-1</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>eGFR Bökenkamp (CistC en &lt;1 año):</strong> Bökenkamp A, et al. Cystatin C--a new marker of glomerular filtration rate in children independent of age and height. <em>Pediatrics.</em> 1998;101(5):875-881. <a href="https://doi.org/10.1542/peds.101.5.875" target="_blank" rel="noopener">doi:10.1542/peds.101.5.875</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Estadificación KDIGO (&gt;2 años):</strong> Kidney Disease: <em>Improving Global Outcomes (KDIGO) CKD Work Group. KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease.</em> Kidney Int. 2024 Apr;105(4S):S117-S314. <a href="https://doi.org/10.1016/j.kint.2023.10.018" target="_blank" rel="noopener">doi:10.1016/j.kint.2023.10.018</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Estadificación ERC (&lt;2 años):</strong> Rangos adaptados al desarrollo de la función renal pediátrica normal por percentiles durante los primeros 24 meses de vida.
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Excreciones Fraccionales y Cocientes:</strong> Protocolos diagnósticos y terapéuticos de Nefrología Pediátrica. <em>Asociación Española de Pediatría (AEP).</em> <a href="https://static.aeped.es/02_evaluac_func_5c0bcc1328.pdf" target="_blank" rel="noopener">Protocolos AENP</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Valores de Referencia en Orina:</strong> Avner ED, et al. <em>Pediatric Nephrology.</em> 7th ed. Springer; 2016. <a href="https://doi.org/10.1007/978-3-662-43596-0" target="_blank" rel="noopener">doi:10.1007/978-3-662-43596-0</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Longitud Renal Pediátrica (LMS Percentiles):</strong> Obrycki Ł, et al. Kidney length normative values in children aged 0-19 years - a multicenter study. <em>Pediatr Nephrol.</em> 2022;37(5):1075-1085. <a href="https://doi.org/10.1007/s00467-021-05303-5" target="_blank" rel="noopener">doi:10.1007/s00467-021-05303-5</a>
+                        </li>
+                        <li class="bibliography-item">
+                            <strong>Hipertrofia Compensadora (Riñón Único):</strong> Krill A, et al. Evaluating compensatory hypertrophy: a growth curve specific for solitary functioning kidneys. <em>J Urol.</em> 2012;188(4 Suppl):1613-1617. <a href="https://doi.org/10.1016/j.juro.2012.02.035" target="_blank" rel="noopener">doi:10.1016/j.juro.2012.02.035</a>
+                        </li>
+                    </ul>
                 </div>
             </details>
         </div>
-    
+
         <footer class="app-footer">
             <p class="footer-legal-title">
-                <strong><i class="fas fa-shield-alt icon-left" ></i> Aviso Legal y Descargo de Responsabilidad Clínica</strong>
+                <strong><i class="fas fa-shield-alt icon-left"></i> Aviso Legal y Descargo de Responsabilidad Clínica</strong>
             </p>
             <p>
                 NefroPed es una herramienta informática de apoyo diseñada exclusivamente para profesionales sanitarios. Los cálculos, estadificaciones y fórmulas pediátricas se basan en la literatura médica estándar. Sin embargo, esta aplicación no constituye un dispositivo médico ni un sistema de diagnóstico, y los resultados generados <strong>nunca deben sustituir el juicio clínico del facultativo</strong>.
@@ -433,7 +632,6 @@
             <p>
                 El autor no se hace responsable de posibles errores en la entrada de datos, fallos en el procesamiento del navegador o decisiones terapéuticas tomadas en base a los resultados de esta aplicación. Es responsabilidad exclusiva del profesional médico verificar las dosis, parámetros y resultados antes de cualquier intervención clínica.
             </p>
-            
             <p class="footer-security-note">
                 <i class="fas fa-lock icon-left"></i> Privacidad garantizada: Los datos introducidos no se envían a ningún servidor y se procesan 100% de forma local en el dispositivo.
             </p>
@@ -441,19 +639,20 @@
             <div class="footer-credits">
                 Dirección médica e idea original: <strong>Dra. Ana María Ortega Morales, FEA Pediatría en HUSC Granada</strong><br>
                 Desarrollo técnico e informático: <strong>Felipe Reyes</strong><br>
-                <a href="mailto:contacto@nefroped.es" class="footer-contact-link icon-left">
+                <!-- ✅ ANTES: [contacto@nefroped.es](mailto:...) — Markdown crudo, no válido en HTML -->
+                <!-- AHORA: enlace HTML limpio -->
+                <a href="mailto:contacto@nefroped.es" class="footer-contact-link">
                     <i class="fas fa-envelope icon-left"></i> contacto@nefroped.es
                 </a><br>
-                
                 <button id="btn-install-pwa" class="btn btn-install-app hidden">
                     <i class="fas fa-mobile-alt icon-left"></i> Instalar App
                 </button>
             </div>
-            
+
             <div class="footer-theme-toggle">
                 <button id="theme-toggle-footer" class="btn-theme-footer" aria-label="Cambiar modo oscuro/claro">
                     <i class="fas fa-moon icon-left"></i> <span id="theme-text">Modo Oscuro</span>
-                 </button>
+                </button>
             </div>
 
             <div class="footer-copyright">
@@ -461,9 +660,8 @@
             </div>
         </footer>
     </div>
+
     <script src="scripts.js" defer></script>
     <script data-goatcounter="https://nefroped.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
-
-
 </html>

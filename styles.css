@@ -285,14 +285,53 @@ h4 { font-size: var(--font-size-xl); }
 .form-control.campo-valido { border-color: var(--color-primary) !important; background-color: transparent; box-shadow: 0 0 0 1px var(--color-primary) inset; transition: all 0.3s ease; }
 .form-control.campo-error { border-color: var(--color-error) !important; box-shadow: 0 0 0 1px var(--color-error) inset; }
 
-/* Textarea expansivo */
+/* ==========================================================================
+   ESTILOS ESPECÍFICOS PARA TEXTAREA (Nutrición, Sedimento, Ecografía)
+   ========================================================================== */
 textarea.form-control {
-    height: 42px !important; min-height: 42px; overflow: hidden; resize: none;
-    white-space: nowrap; text-overflow: ellipsis; padding-top: 10px;
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px;
+    box-sizing: border-box !important; 
+    
+    overflow: hidden;
+    resize: none;
+    
+    white-space: normal !important; 
+    word-break: break-all !important; 
+    
+    /* EL TRUCO DEFINITIVO: 
+       Hacemos que el renglón mida exactamente lo mismo que la caja (42px).
+       El texto quedará centrado verticalmente por arte de magia, y la 2ª línea
+       empezará en el píxel 43, quedando decapitada y 100% invisible. */
+    line-height: 42px !important;
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    
+    padding-left: 12px !important; 
+    padding-right: 12px !important; 
 }
+
 textarea.form-control:focus {
-    height: 150px !important; min-height: 150px; white-space: normal;
-    overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 10; position: relative;
+    height: 150px !important;
+    min-height: 150px;
+    
+    /* Al hacer clic, devolvemos el texto a su tamaño y márgenes normales */
+    line-height: 1.5 !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    
+    white-space: normal !important;
+    word-break: normal !important; 
+    
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    z-index: 10;
+    position: relative;
+    
+    padding-left: 12px !important;
+    padding-right: 12px !important; 
 }
 
 /* Campos especiales (Spinners y Edad) */
@@ -685,4 +724,61 @@ textarea.form-control.campo-valido,
 textarea.form-control.campo-error {
     background-image: none !important;
     padding-right: var(--space-12) !important;
+}
+/* ============================================
+   14. IMPRESIÓN / EXPORTACIÓN PDF
+   ============================================ */
+@media print {
+  .tabs, .nav-tabs,
+  .zona-botones-principales,
+  .export-options,
+  .bibliography-container,
+  .app-footer,
+  .field-count,
+  #test-mode-banner,
+  #btn-install-pwa,
+  .footer-theme-toggle {
+    display: none !important;
+  }
+
+  .tab-content { display: block !important; }
+
+  body, .container, .app-header,
+  .tabs-container, .results-section, .report-section {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .app-header { padding: 8px 0 !important; margin-bottom: 12px !important; }
+  .app-title { font-size: 18px !important; }
+  .app-subtitle { font-size: 12px !important; }
+
+  .form-control {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .result-item {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .report-content {
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+    white-space: pre-wrap;
+  }
+
+  .tab-content, .result-item, .form-group { break-inside: avoid; }
 }

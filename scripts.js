@@ -63,7 +63,6 @@ function mostrarAvisoActualizacion(worker) {
 // ===============================================
 let fieldIds = [];
 let camposParaContador = [];
-let reportText = '';
 
 const AppState = {
     calculatedResults: {},
@@ -79,7 +78,7 @@ const AppState = {
 // 3. INICIALIZACIÓN PRINCIPAL (DOMContentLoaded Maestro)
 // ===============================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Inicializando aplicación...');
+    if (location.hostname === 'localhost') console.log('🚀 Dev mode');
     
     // 1. Primero leemos todos los IDs del HTML
 // 1. Leemos los IDs, pero EXCLUIMOS la edad calculada, los checkboxes y los radios
@@ -87,8 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .filter(input => input.id !== 'edad_calculada' && input.type !== 'checkbox' && input.type !== 'radio')
         .map(input => input.id);    
     // 2. Luego montamos el contador sumando los de texto
-    camposParaContador = [...fieldIds, 'sedimento_urinario', 'comentario_nutricional'];
-
+    camposParaContador = [...fieldIds, 'sedimento_urinario', 'comentario_nutricional', 'serie_blanca', 'serie_plaquetaria', 'coagulacion'];
     // 3. Lanzamos el resto de funciones
     configureNumericValidation();
     configurarEventosFechas();
@@ -220,6 +218,9 @@ function setupAutoSave() {
         const data = getFormData();
         data.sedimento_urinario = document.getElementById('sedimento_urinario')?.value || '';
         data.comentario_nutricional = document.getElementById('comentario_nutricional')?.value || '';
+        data.serie_blanca = document.getElementById('serie_blanca')?.value || '';
+        data.serie_plaquetaria = document.getElementById('serie_plaquetaria')?.value || '';
+        data.coagulacion = document.getElementById('coagulacion')?.value || '';
         sessionStorage.setItem('calcRenalDataTemporales', JSON.stringify(data));
     });
 }
@@ -500,7 +501,7 @@ function clearFormSilent() {
         if (input) input.value = '';
     });
 
-    ['sedimento_urinario', 'comentario_nutricional', 'edad_calculada'].forEach(id => {
+    ['sedimento_urinario', 'comentario_nutricional', 'serie_blanca', 'serie_plaquetaria', 'coagulacion', 'edad_calculada'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -553,7 +554,9 @@ function loadSampleData() {
         ph_plasma: 7.38, pco2_mmhg: 42.1, hco3_mmol_l: 22.8, exceso_bases_mmol_l: -1.2,
         densidad: 1018, ph_orina: 6.2, sedimento_urinario: "Hematíes 3-5/campo. Leucocitos aislados. Ausencia de cilindros.", au_orina_mg_dl: 45.8, na_orina_meq_l: 85.2, k_orina_meq_l: 55.1, cl_orina_meq_l: 98.5, osmolalidad_orina_mosm_kg: 320, ca_orina_mg_dl: 12.5, fosforo_orina_mg_dl: 18.2, magnesio_orina_mg_dl: 8.5, albumina_orina_mg_dl: 3.2, creatinina_orina_mg_dl: 68.5, proteinas_orina_mg_dl: 8.1, citrato_orina_mg_dl: 85.2, oxalato_orina_mg_dl: 15.8,
         au_24h_mg: 420, ca_24h_mg: 85, p_24h_mg: 520, mg_24h_mg: 65, albumina_24h_mg: 25, proteinas_24h_mg: 95, citrato_24h_mg: 485, oxalato_24h_mg: 28,
-        hb_g_l: 125, ferritina_ng_ml: 45.8, ist_percent: 22.5,
+        hb_g_l: 125, ferritina_ng_ml: 45.8, ist_percent: 22.5,serie_blanca: 'Leucocitos 6.200/µL. Fórmula normal. Sin blastos ni atipias.',
+        serie_plaquetaria: 'Plaquetas 285.000/µL. Morfología normal.',
+        coagulacion: 'TP 12.1s (100%). TTPA 31.2s. Fibrinógeno 2.8 g/L.',
         rinon_izquierdo_mm: 98, rinon_derecho_mm: 95 
     };
     
@@ -1081,7 +1084,7 @@ function generateReport(data) {
     function isValid(value) { return value != null && !isNaN(value) && value !== 0; }
     function fmt(value, decimals = 2) { return !isValid(value) ? null : parseFloat(value).toFixed(decimals); }
 
-    let report = []; // Aquí guardaremos el texto plano para el portapapeles
+    let report = [];
         
     let hidrosalino = [];
     if (isValid(data.urea_mg_dl)) hidrosalino.push(`Urea: ${fmt(data.urea_mg_dl)}mg/dL`);
@@ -1131,6 +1134,12 @@ function generateReport(data) {
     if (isValid(data.hb_g_l)) hematologico.push(`Hemoglobina: ${fmt(data.hb_g_l)}g/L`);
     if (isValid(data.ferritina_ng_ml)) hematologico.push(`Ferritina: ${fmt(data.ferritina_ng_ml)}ng/mL`);
     if (isValid(data.ist_percent)) hematologico.push(`IST: ${fmt(data.ist_percent)}%`);
+    const serieBlanca = document.getElementById('serie_blanca') ? document.getElementById('serie_blanca').value.trim() : '';
+    const seriePlaquetaria = document.getElementById('serie_plaquetaria') ? document.getElementById('serie_plaquetaria').value.trim() : '';
+    const coagulacion = document.getElementById('coagulacion') ? document.getElementById('coagulacion').value.trim() : '';
+    if (serieBlanca) hematologico.push(`Serie blanca: ${serieBlanca}`);
+    if (seriePlaquetaria) hematologico.push(`Serie plaquetaria: ${seriePlaquetaria}`);
+    if (coagulacion) hematologico.push(`Coagulación: ${coagulacion}`);
 
     let gasometria = [];
     if (isValid(data.ph_plasma)) gasometria.push(`pH: ${fmt(data.ph_plasma)}`);
@@ -1140,6 +1149,7 @@ function generateReport(data) {
 
     let orina = [];
     const sedimentoUrinario = document.getElementById('sedimento_urinario') ? document.getElementById('sedimento_urinario').value.trim() : '';
+    const comentarioNutricional = document.getElementById('comentario_nutricional') ? document.getElementById('comentario_nutricional').value.trim() : '';
     if (isValid(data.densidad)) orina.push(`Densidad: ${fmt(data.densidad, 0)}`);
     if (isValid(data.ph_orina)) orina.push(`pH: ${fmt(data.ph_orina)}`);
     
@@ -1185,16 +1195,11 @@ function generateReport(data) {
         if (gasometria.length > 0) report.push(`- Gasometría: ${gasometria.join('   ')}`);
         if (orina.length > 0) report.push(`- Orina puntual: ${orina.join('   ')}`);
         if (cocientes.length > 0) report.push(`- Cocientes urinarios: ${cocientes.join('   ')}`);
-        if (orina24h.length > 0) report.push(`- Orina de 24h: ${orina24h.join('   ')}`);
+        if (orina24h.length > 0) report.push(`- Orina de 24h: ${orina24h.join(' | ')}`);
+        
     }
-
-    const comentarioNutricional = document.getElementById('comentario_nutricional') ? document.getElementById('comentario_nutricional').value.trim() : '';
-    if (comentarioNutricional) {
-        report.push(`- Nutricional: ${comentarioNutricional}`);
-    }
-
     if (AppState.ecografiaReportText) {
-        report.push("\n2) Ecografía renal");
+        report.push(`2) Ecografía renal`);
         report.push(AppState.ecografiaReportText);
     }
 
@@ -1220,7 +1225,6 @@ function generateReport(data) {
         };
         const m = meses <= 0 ? 1 : (meses > 24 ? 24 : Math.floor(meses));
         const [g1, g2, g3, g4] = limites[m];
-        
         if (egfr >= g1) return "ERC 1 (Normal o elevado)";
         if (egfr >= g2) return "ERC 2 (Levemente disminuido)";
         if (egfr >= g3) return "ERC 3 (Moderadamente disminuido)";
@@ -1244,7 +1248,7 @@ function generateReport(data) {
         if (isValid(results.ckid_u25_cr)) grados_kdigo.push(`- eGFR CKiD U25 Cr: ${evaluarGradoG(results.ckid_u25_cr)}`);
         if (isValid(results.ekfc_cr)) grados_kdigo.push(`- eGFR EKFC Cr: ${evaluarGradoG(results.ekfc_cr)}`);
         if (isValid(results.ckid_u25_cistc)) grados_kdigo.push(`- eGFR CKiD U25 CistC: ${evaluarGradoG(results.ckid_u25_cistc)}`);
-        if (isValid(results.ekfc_cistc)) grados_kdigo.push(`- eGFR EKFCCystC: ${evaluarGradoG(results.ekfc_cistc)}`); 
+        if (isValid(results.ekfc_cistc)) grados_kdigo.push(`- eGFR EKFCCystC: ${evaluarGradoG(results.ekfc_cistc)}`);
         if (isValid(results.ckid_u25_combinado)) grados_kdigo.push(`- eGFR Combinado (CKiD U25): ${evaluarGradoG(results.ckid_u25_combinado)}`);
         let gradoAlb = (results.albcr !== undefined && results.albcr > 0) ? evaluarGradoA(results.albcr) : null;
         if (gradoAlb) grados_kdigo.push(`- Albuminuria: ${gradoAlb}`);
@@ -1297,41 +1301,35 @@ function generateReport(data) {
         htmlFueraRango += `</ul>`;
     }
 
-    // AQUI ESTÁ EL CAMBIO MAESTRO:
-    // Guardamos el texto plano en el AppState, pero NO lo pintamos.
     AppState.reportPlainText = report.join('\n');
 
-    // Construimos el HTML Premium para pintarlo en la PANTALLA
     const boldify = (str) => {
         let split = str.split(': ');
         return split.length > 1 ? `<strong>${split[0]}:</strong> ${split.slice(1).join(': ')}` : str;
     };
 
-let html = `<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 8px;">`;    if (hayDatosAnalitica) {
+    let html = `<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 8px;">`;
+    if (hayDatosAnalitica) {
         html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">1) Analítica</h4>`;
         html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
-        if (hidrosalino.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Hidrosalino:</strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
-        if (fosfocalcico.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Metabolismo fosfocálcico:</strong> ${fosfocalcico.map(boldify).join(' | ')}</li>`;
-        if (hematologico.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Hematológico:</strong> ${hematologico.map(boldify).join(' | ')}</li>`;
-        if (gasometria.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Gasometría:</strong> ${gasometria.map(boldify).join(' | ')}</li>`;
-        if (orina.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Orina puntual:</strong> ${orina.map(boldify).join(' | ')}</li>`;
-        if (cocientes.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Cocientes urinarios:</strong> ${cocientes.map(boldify).join(' | ')}</li>`;
-        if (orina24h.length > 0) html += `<li style="margin-bottom: 4px;"><strong>Orina de 24h:</strong> ${orina24h.map(boldify).join(' | ')}</li>`;
+        if (hidrosalino.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Hidrosalino:</u></strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
+        if (fosfocalcico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Metabolismo fosfocálcico:</u></strong> ${fosfocalcico.map(boldify).join(' | ')}</li>`;
+        if (hematologico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Hematológico:</u></strong> ${hematologico.map(boldify).join(' | ')}</li>`;
+        if (gasometria.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Gasometría:</u></strong> ${gasometria.map(boldify).join(' | ')}</li>`;
+        if (orina.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Orina puntual:</u></strong> ${orina.map(boldify).join(' | ')}</li>`;
+        if (cocientes.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Cocientes urinarios:</u></strong> ${cocientes.map(boldify).join(' | ')}</li>`;
+        if (orina24h.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Orina de 24h:</u></strong> ${orina24h.map(boldify).join(' | ')}</li>`;
+        if (comentarioNutricional) html += `<li style="margin-bottom: 4px;"><strong><u>Otros:</u></strong> ${comentarioNutricional}</li>`;
         html += `</ul>`;
     }
-    if (comentarioNutricional) {
-        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">2) Valoración Nutricional</h4>`;
-        html += `<p style="margin-top: 0; padding-left: 20px; font-style: italic;">${comentarioNutricional}</p>`;
-    }
     if (AppState.ecografiaReportText) {
-        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">3) Ecografía Renal</h4>`;
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">2) Ecografía Renal</h4>`;
         html += `<p style="margin-top: 0; padding-left: 20px;">${AppState.ecografiaReportText.replace('-Longitud renal ecográfica: ', '<strong>Longitud renal ecográfica:</strong> ')}</p>`;
     }
     html += htmlEstadificacion;
     html += htmlFueraRango;
     html += `</div>`;
 
-    // Pintamos el HTML DIRECTAMENTE EN LA PANTALLA del usuario
     const reportContentDiv = document.getElementById('reportContent');
     reportContentDiv.innerHTML = html;
 
@@ -1480,7 +1478,7 @@ function buildReportHTML() {
     // ── Bloques de texto libre ────────────────────────
     const bloques = [
         { titulo:'SEDIMENTO URINARIO',     texto: get('sedimento_urinario') },
-        { titulo:'COMENTARIO NUTRICIONAL', texto: get('comentario_nutricional') },
+        { titulo:'OTROS',                  texto: get('comentarionutricional') },
         { titulo:'ECOGRAFÍA RENAL',        texto: AppState.ecografiaReportText }
     ];
     bloques.forEach(({ titulo, texto }) => {
@@ -1740,7 +1738,7 @@ function exportToPDF() {
             // ══ BLOQUE DE TEXTO LIBRE ══════════════════════
             const bloques = [
                 { titulo:'SEDIMENTO URINARIO',     texto: get('sedimento_urinario') },
-                { titulo:'COMENTARIO NUTRICIONAL', texto: get('comentario_nutricional') },
+                { titulo:'OTROS',                  texto: get('comentarionutricional') },
                 { titulo:'ECOGRAFÍA RENAL',        texto: AppState.ecografiaReportText }
             ];
             bloques.forEach(({ titulo, texto }) => {

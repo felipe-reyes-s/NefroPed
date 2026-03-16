@@ -47,7 +47,8 @@
   --color-bg-3: rgba(16, 185, 129, 0.08);
 
   /* Tipografía y Espaciado */
-  --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family-base: "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-size-base: 14px;
   --font-size-base: 14px;
   --font-size-md: 14px;
   --font-size-lg: 16px;
@@ -168,10 +169,6 @@
 /* ============================================
    3. RESETEOS Y BASE
    ============================================ */
-@font-face {
-  font-family: 'FKGroteskNeue';
-  src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
-}
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -781,4 +778,84 @@ textarea.form-control.campo-error {
   }
 
   .tab-content, .result-item, .form-group { break-inside: avoid; }
+}
+/* ================================================
+   TIPOGRAFÍA NUMÉRICA
+   ================================================ */
+.result-value,
+input[type="number"] {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+/* ================================================
+   INFORME — MODO OSCURO
+   ================================================ */
+.report-body {
+    font-family: var(--font-family-base);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    padding: 8px;
+}
+
+.report-body h4 {
+    color: var(--color-primary) !important;
+    border-bottom-color: var(--color-border) !important;
+}
+
+.report-body ul li {
+    color: var(--color-text);
+}
+
+/* Valores fuera de rango — mantener rojo pero adaptado */
+[data-color-scheme="dark"] .report-body [style*="dc2626"],
+[data-color-scheme="dark"] .report-body [style*="fca5a5"] {
+    color: var(--color-error) !important;
+    border-color: var(--color-error) !important;
+}
+
+/* ================================================
+   ACCESIBILIDAD — ALTO CONTRASTE
+   ================================================ */
+@media (prefers-contrast: high) {
+    :root,
+    [data-color-scheme="light"],
+    [data-color-scheme="dark"] {
+        --color-bg-base: #ffffff;
+        --color-bg-surface: #ffffff;
+        --color-txt-main: #000000;
+        --color-txt-muted: #1a1a1a;
+        --color-brand-primary: #0052a3;
+        --color-border-base: #000000;
+        --color-sem-error: #a30000;
+        --color-sem-success: #006600;
+    }
+
+    .form-control {
+        border-width: 2px !important;
+    }
+
+    .btn {
+        border: 2px solid currentColor !important;
+        font-weight: 700 !important;
+    }
+}
+
+/* ================================================
+   ACCESIBILIDAD — REDUCIR MOVIMIENTO
+   ================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .btn.loading::after {
+        animation: none !important;
+    }
 }

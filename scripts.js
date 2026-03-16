@@ -1337,7 +1337,7 @@ function generateReport(data) {
         return split.length > 1 ? `<strong>${split[0]}:</strong> ${split.slice(1).join(': ')}` : str;
     };
 
-    let html = `<div style="font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 8px;">`;
+let html = `<div class="report-body">`;
     if (hayDatosAnalitica) {
         html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">1) Analítica</h4>`;
         html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;

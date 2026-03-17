@@ -39,9 +39,25 @@
     </div>
   <div class="container">
         <header class="app-header">
-            <h1 class="app-title">NefroPed</h1>
-            <p class="app-subtitle">Calculadora Clínica de Nefrología Pediátrica</p>
-        </header>
+    <h1 class="app-title">NefroPed</h1>
+    <p class="app-subtitle">Calculadora Clínica de Nefrología Pediátrica</p>
+    <button id="theme-toggle-header" class="theme-pill-btn" aria-label="Cambiar tema">
+        <div class="theme-pill-glow"></div>
+        <div class="theme-pill-track">
+            <div class="theme-pill-thumb">
+                <svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/>
+                    <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+                    <path d="M2 12h2"/><path d="M20 12h2"/>
+                    <path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+                </svg>
+                <svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                </svg>
+            </div>
+        </div>
+    </button>
+</header>
 
         <div class="tabs-container">
            <nav class="tabs nav-tabs" role="tablist" aria-label="Secciones clínicas">
@@ -450,45 +466,46 @@
 
                 </div>
             </details>
+            <details class="bibliography-details">
+    <summary class="bibliography-summary">
+        <i class="fas fa-balance-scale"></i> Aviso Legal y Privacidad
+    </summary>
+    <div class="bibliography-content footer-legal-contenido">
+        <p>NefroPed es una herramienta informática de apoyo diseñada exclusivamente para profesionales sanitarios. Los cálculos, estadificaciones y fórmulas pediátricas se basan en la literatura médica estándar. Sin embargo, esta aplicación no constituye un dispositivo médico ni un sistema de diagnóstico, y los resultados generados nunca deben sustituir el juicio clínico del facultativo.</p>
+        <p>El autor no se hace responsable de posibles errores en la entrada de datos, fallos en el procesamiento del navegador o decisiones terapéuticas tomadas en base a los resultados de esta aplicación. Es responsabilidad exclusiva del profesional médico verificar las dosis, parámetros y resultados antes de cualquier intervención clínica.</p>
+        <p>🔒 <strong>Privacidad garantizada:</strong> Los datos introducidos no se envían a ningún servidor y se procesan 100% de forma local en el dispositivo.</p>
+    </div>
+</details>
+
         </div>
-    
-        <footer class="app-footer">
-            <p class="footer-legal-title">
-                <strong><i class="fas fa-shield-alt icon-left" ></i> Aviso Legal y Descargo de Responsabilidad Clínica</strong>
-            </p>
-            <p>
-                NefroPed es una herramienta informática de apoyo diseñada exclusivamente para profesionales sanitarios. Los cálculos, estadificaciones y fórmulas pediátricas se basan en la literatura médica estándar. Sin embargo, esta aplicación no constituye un dispositivo médico ni un sistema de diagnóstico, y los resultados generados <strong>nunca deben sustituir el juicio clínico del facultativo</strong>.
-            </p>
-            <p>
-                El autor no se hace responsable de posibles errores en la entrada de datos, fallos en el procesamiento del navegador o decisiones terapéuticas tomadas en base a los resultados de esta aplicación. Es responsabilidad exclusiva del profesional médico verificar las dosis, parámetros y resultados antes de cualquier intervención clínica.
-            </p>
-            
-            <p class="footer-security-note">
-                <i class="fas fa-lock icon-left"></i> Privacidad garantizada: Los datos introducidos no se envían a ningún servidor y se procesan 100% de forma local en el dispositivo.
-            </p>
+    <footer class="app-footer">
 
-            <div class="footer-credits">
-                Dirección médica e idea original: <strong>Dra. Ana María Ortega Morales, FEA Pediatría en HUSC Granada</strong><br>
-                Desarrollo técnico e informático: <strong>Felipe Reyes</strong><br>
-                <a href="mailto:contacto@nefroped.es" class="footer-contact-link icon-left">
-                    <i class="fas fa-envelope icon-left"></i> contacto@nefroped.es
-                </a><br>
-                
-                <button id="btn-install-pwa" class="btn btn-install-app hidden">
-                    <i class="fas fa-mobile-alt icon-left"></i> Instalar App
-                </button>
-            </div>
-            
-            <div class="footer-theme-toggle">
-                <button id="theme-toggle-footer" class="btn-theme-footer" aria-label="Cambiar modo oscuro/claro">
-                    <i class="fas fa-moon icon-left"></i> <span id="theme-text">Modo Oscuro</span>
-                 </button>
-            </div>
+  <!-- Línea 1: Aviso clínico -->
+  <p class="footer-aviso">
+  ⚕️ Herramienta de apoyo para profesionales sanitarios. 
+  No sustituye el juicio clínico facultativo.
+</p>
+  <!-- Línea 2: Créditos -->
+  <p class="footer-creditos">
+    Idea: Ana María Ortega Morales, FEA Pediatría (HUSC) &nbsp;|&nbsp; Desarrollo: Felipe Reyes
+  </p>
+  
+  <!-- Línea 3: Acciones -->
+  <div class="footer-acciones">
+    <a href="mailto:contacto@nefroped.es" class="footer-contact-link">
+        <i class="fas fa-envelope icon-left"></i> Contacto
+    </a>
+    <button id="btn-install-pwa" class="btn btn-install-app hidden">
+        <i class="fas fa-mobile-alt icon-left"></i> Instalar App
+    </button>
+</div>
+  <!-- Línea 4: Copyright -->
+ <p class="footer-copyright">
+  Desarrollado para la comunidad de Nefrología Pediátrica · © 2026 NefroPed · Todos los derechos reservados
+</p>
 
-            <div class="footer-copyright">
-                <span>Desarrollado para la comunidad de Nefrología Pediátrica | &copy; 2026 Todos los derechos reservados.</span>
-            </div>
-        </footer>
+</footer>
+
     </div>
     
     <script data-goatcounter="https://nefroped.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

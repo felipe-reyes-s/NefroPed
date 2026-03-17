@@ -168,36 +168,46 @@ function setupThemeToggle() {
     const themeText = document.getElementById('theme-text');
     const themeIcon = toggleBtn ? toggleBtn.querySelector('i') : null;
 
-    if (!toggleBtn) return;
-
     function updateUI(theme) {
         if (theme === 'dark') {
-            if(themeIcon) themeIcon.className = 'fas fa-sun';
-            if(themeText) themeText.textContent = 'Modo Claro';
+            if (themeIcon) themeIcon.className = 'fas fa-sun';
+            if (themeText) themeText.textContent = 'Modo Claro';
         } else {
-            if(themeIcon) themeIcon.className = 'fas fa-moon';
-            if(themeText) themeText.textContent = 'Modo Oscuro';
+            if (themeIcon) themeIcon.className = 'fas fa-moon';
+            if (themeText) themeText.textContent = 'Modo Oscuro';
         }
     }
 
     const savedTheme = localStorage.getItem('themePref');
-    if (savedTheme) {
-        document.documentElement.setAttribute('data-color-scheme', savedTheme);
-        updateUI(savedTheme);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.setAttribute('data-color-scheme', 'dark');
-        updateUI('dark');
-    } else {
-        updateUI('light'); 
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    
+    // Aplicar tema inicial SIEMPRE con data-color-scheme
+    document.documentElement.setAttribute('data-color-scheme', currentTheme);
+    updateUI(currentTheme);
+
+    // Listener footer
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-color-scheme', current);
+            localStorage.setItem('themePref', current);
+            updateUI(current);
+        });
     }
 
-    toggleBtn.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-color-scheme', currentTheme);
-        localStorage.setItem('themePref', currentTheme);
-        updateUI(currentTheme);
-    });
+    // ✅ Listener header — dentro de setupThemeToggle para acceder a updateUI
+    const headerBtn = document.getElementById('theme-toggle-header');
+    if (headerBtn) {
+        headerBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-color-scheme', current);
+            localStorage.setItem('themePref', current);
+            updateUI(current);
+        });
+    }
 }
+
 
 function setupAutoSave() {
     const savedData = sessionStorage.getItem('calcRenalDataTemporales');
@@ -1322,11 +1332,12 @@ function generateReport(data) {
         let fueraRangoEditado = AppState.valoresFueraRango.map(v => `-${v}`);
         fueraRangoEditado.forEach(v => report.push(v));
 
-        htmlFueraRango = `<h4 style="color: #dc2626; margin-bottom: 8px; border-bottom: 1px solid #fca5a5; padding-bottom: 4px; margin-top: 20px;">⚠️ Valores fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px; color: #dc2626;">`;
-        AppState.valoresFueraRango.forEach(v => {
-            let part = v.split(':');
-            htmlFueraRango += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
-        });
+    htmlFueraRango = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">⚠️ Valores fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+       AppState.valoresFueraRango.forEach(v => {
+    let part = v.split(':');
+    htmlFueraRango += `<li style="margin-bottom: 4px; color: #dc2626;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
+});
+
         htmlFueraRango += `</ul>`;
     }
 

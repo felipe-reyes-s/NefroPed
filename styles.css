@@ -208,7 +208,28 @@ h4 { font-size: var(--font-size-xl); }
   border-radius: var(--radius-lg); margin-bottom: var(--space-24);
   position: relative; box-shadow: var(--shadow-sm);
 }
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
 
+.header-left,
+.header-right {
+    flex: 0 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.header-left {
+    justify-content: flex-start;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
 .app-title { margin-bottom: var(--space-8); font-size: var(--font-size-3xl); }
 .app-subtitle { color: var(--color-text-secondary); margin: 0; font-size: var(--font-size-base); }
 
@@ -566,34 +587,83 @@ summary:focus { outline: none; }
 .bibliography-list { margin: 0; padding-left: 20px; line-height: 1.6; text-align: left; }
 .bibliography-item { margin-bottom: 6px; }
 
-/* Footer y Aviso Legal */
-.app-footer { 
-    margin-top: 40px; padding: 20px 15px 50px 15px; 
-    border-top: 1px solid var(--color-border); text-align: justify; 
-    color: var(--color-text-secondary); font-size: 11px; line-height: 1.5; 
-}
-.footer-legal-title { text-align: center; margin-bottom: 8px; }
-.footer-security-note { text-align: center; color: var(--color-primary); font-weight: 600; font-size: 12px; margin: 15px 0; }
-.footer-credits { text-align: center; margin-top: 20px; font-weight: 500; line-height: 1.8; }
-.footer-contact-link { color: var(--color-primary); text-decoration: none; display: inline-block; margin-bottom: 12px; }
-
-/* Botón Instalar App (Footer) */
-.btn-install-app { 
-    background-color: transparent; border: 1px solid var(--color-primary); 
-    color: var(--color-primary); font-size: 12px; padding: 4px 14px; 
-    border-radius: 20px; cursor: pointer; margin-bottom: 12px; transition: all 0.2s ease; 
-}
-.btn-install-app:hover { 
-    background-color: var(--color-primary); color: var(--color-btn-primary-text); 
+/* Footer */
+.app-footer {
+    margin-top: 40px; padding: 20px 15px 50px 15px;
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    display: flex; flex-direction: column; gap: 12px;
 }
 
-/* Resto Footer */
-.footer-theme-toggle { margin-top: 5px; margin-bottom: 20px; display: flex; justify-content: center; }
-.footer-copyright { text-align: center; margin-top: 15px; border-top: 1px solid var(--color-border); padding-top: 15px; }
+.footer-aviso {
+    text-align: center;
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 12px;
+    margin: 0;
+}
 
-/* Actualización de Cabecera (Para quitar sus estilos en línea también) */
+.footer-creditos {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary); margin: 0;
+}
+
+/* Contacto — restaurar estilo original */
+.footer-contact-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    display: inline-block;
+    font-size: 0.82rem;
+}
+.footer-contact-link:hover { text-decoration: underline; }
+/* Acciones: Contacto + Instalar */
+.footer-acciones {
+    display: flex; justify-content: center;
+    align-items: center; gap: 24px;
+}
+.footer-link {
+    font-size: 0.82rem; color: var(--color-primary);
+    text-decoration: none; background: none;
+    border: none; cursor: pointer; padding: 0; font-family: inherit;
+}
+.footer-link:hover { text-decoration: underline; }
+
+/* Botón instalar — mismo estilo que antes */
+.btn-install-app {
+    background-color: transparent;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    font-size: 12px;
+    padding: 2px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: unset;      /* ← anula el min-height del .btn base */
+    line-height: 1.4;       /* ← anula el line-height heredado */
+    height: auto;           /* ← por si .btn fuerza altura fija */
+}
+.btn-install-app:hover {
+    background-color: var(--color-primary);
+    color: var(--color-btn-primary-text);
+}
+
+/* Copyright */
+.footer-comunidad {
+    font-size: 0.75rem; color: var(--color-text-secondary); margin: 0;
+}
+.footer-copyright {
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+    border-top: 1px solid var(--color-border);
+    padding-top: 12px;
+    text-align: center;
+}
+
+/* Cabecera */
 .app-title { margin-bottom: var(--space-8); font-size: 2.8rem; font-weight: 800; color: var(--color-primary); letter-spacing: -1px; }
 .app-subtitle { color: var(--color-text-secondary); margin: 0; font-size: 1.1rem; font-weight: 500; opacity: 0.85; }
+
 
 /* ============================================
    12. LIMPIEZA DE ESTILOS EN LÍNEA
@@ -804,10 +874,6 @@ input[type="number"] {
     border-bottom-color: var(--color-border) !important;
 }
 
-.report-body ul li {
-    color: var(--color-text);
-}
-
 /* Valores fuera de rango — mantener rojo pero adaptado */
 [data-color-scheme="dark"] .report-body [style*="dc2626"],
 [data-color-scheme="dark"] .report-body [style*="fca5a5"] {
@@ -859,3 +925,166 @@ input[type="number"] {
         animation: none !important;
     }
 }
+/* ================================================
+   THEME TOGGLE — HEADER
+   ================================================ */
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-left,
+.header-right {
+    flex: 0 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.header-left { justify-content: flex-start; }
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+.theme-pill-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    transform: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 9999px;
+    outline: none;
+}
+
+
+.theme-pill-glow {
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    z-index: 0;
+    background: linear-gradient(to right, #0891b2, #22d3ee);
+    pointer-events: none;
+}
+
+.theme-pill-btn:hover .theme-pill-glow { opacity: 0.4; }
+
+.theme-pill-track {
+    position: relative;
+    z-index: 1;
+    width: 38px;
+    height: 20px;
+    border-radius: 9999px;
+    border: 2px solid #0891b2;
+    background: #0891b2;
+    overflow: hidden;
+    transition: background 300ms ease,
+                border-color 300ms ease,
+                box-shadow 300ms ease;
+}
+
+[data-color-scheme="dark"] .theme-pill-track {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-color: #22d3ee;
+    overflow: visible;
+    box-shadow: none;
+}
+
+[data-color-scheme="dark"] .theme-pill-btn:hover .theme-pill-track,
+[data-color-scheme="dark"] .theme-pill-btn:focus-visible .theme-pill-track {
+    box-shadow:
+        0 0 12px rgba(34, 211, 238, 0.6),
+        0 0 24px rgba(34, 211, 238, 0.25),
+        inset 0 0 8px rgba(34, 211, 238, 0.15);
+}
+
+.theme-pill-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                background 300ms ease,
+                box-shadow 300ms ease;
+    z-index: 2;
+}
+
+[data-color-scheme="dark"] .theme-pill-thumb {
+    transform: translateX(18px);
+    background: radial-gradient(circle, #1e4a7a 0%, #0f2a4a 100%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+[data-color-scheme="dark"] .theme-pill-btn:hover .theme-pill-thumb {
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.7),
+                0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.theme-icon {
+    position: absolute;
+    transition: opacity 200ms ease, transform 200ms ease;
+    width: 8px;
+    height: 8px;
+}
+
+.theme-icon--sun {
+    color: #f59e0b;
+    opacity: 1;
+    transform: scale(1);
+}
+
+.theme-icon--moon {
+    color: #22d3ee;
+    opacity: 0;
+    transform: scale(0);
+}
+
+[data-color-scheme="dark"] .theme-icon--sun {
+    opacity: 0;
+    transform: scale(0);
+}
+
+[data-color-scheme="dark"] .theme-icon--moon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Tamaños en PC */
+@media (min-width: 640px) {
+    .header-left,
+    .header-right { flex: 0 0 60px; }
+
+    .theme-pill-track {
+        width: 46px;
+        height: 24px;
+    }
+
+    .theme-pill-thumb {
+        width: 16px;
+        height: 16px;
+    }
+
+    [data-color-scheme="dark"] .theme-pill-thumb {
+        transform: translateX(22px);
+    }
+
+    .theme-icon {
+        width: 10px;
+        height: 10px;
+    }
+}
+

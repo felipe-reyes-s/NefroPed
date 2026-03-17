@@ -1508,8 +1508,7 @@ function buildReportHTML() {
           <tr style="background:${bg};">
             <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${labels[key]||key}</td>
             <td style="padding:5px 10px;font-size:12px;font-weight:bold;color:${color};font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${valorTexto}</td>
-            <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${ev.rangoTexto||'—'}</td>
-          </tr>`;
+            <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${(ev.rangoTexto || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>          </tr>`;
         });
 
         html += `</table>`;
@@ -1539,7 +1538,7 @@ function buildReportHTML() {
     // ── Alertas fuera de rango ────────────────────────
     if (AppState.valoresFueraRango?.length > 0) {
         const items = AppState.valoresFueraRango
-            .map(v => `<li style="margin-bottom:3px;">${v}</li>`).join('');
+            .map(v => `<li style="margin-bottom:3px;">${v.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('');
         html += `
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
           <tr>
@@ -1908,15 +1907,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!installBtn) return;
 
     if (isIOS()) {
-        installBtn.classList.remove('hidden');
+        // Detectar si el iPhone ya lo está ejecutando como App (Standalone)
+        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        
+        // Si NO estamos dentro de la app instalada, mostramos el botón
+        if (!isStandalone) {
+            installBtn.classList.remove('hidden');
+        }
     }
 
     installBtn.addEventListener('click', async () => {
         if (isIOS()) {
             Swal.fire({
                 title: 'Instalar en iPhone',
-                html: '<div style="font-size: 15px; text-align: left; line-height: 1.6;">Para añadir esta calculadora a tu móvil:<br><br><b>1.</b> Toca el botón <b>Compartir</b> <i class="fas fa-external-link-alt" style="color: #0891b2;"></i> en la barra inferior de Safari.<br><b>2.</b> Selecciona <b>"Añadir a la pantalla de inicio"</b> <i class="fas fa-plus-square" style="color: #0891b2;"></i>.</div>',
-                icon: 'info',
+                html: '<div style="font-size: 15px; text-align: left; line-height: 1.6;">Para añadir esta calculadora a tu móvil:<br><br><b>1.</b> Toca el botón <b>Compartir</b> <i class="fas fa-share-square" style="font-size: 18px; color: #0891b2;"></i> en la barra inferior de Safari.<br><b>2.</b> Selecciona <b>"Añadir a la pantalla de inicio"</b> <i class="fas fa-plus-square" style="font-size: 18px; color: #0891b2;"></i>.</div>',                icon: 'info',
                 confirmButtonText: 'Entendido',
                 confirmButtonColor: '#0891b2',
                 background: document.documentElement.getAttribute('data-color-scheme') === 'dark' ? '#1e293b' : '#fff',

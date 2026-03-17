@@ -7,7 +7,7 @@
   "background_color": "#f1f5f9",
   "theme_color": "#0f172a",
   "orientation": "portrait",
-  "description": "Calculadora médica para nefrología pediátrica: eGFR, CKiD U25, KDIGO y más.",
+  "description": "Calculadora Clínica de nefrología pediátrica",
   "categories": [
     "medical",
     "health",
@@ -44,9 +44,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Nueva Calculación",
+      "name": "Nuevo Cálculo",
       "short_name": "Nueva",
-      "description": "Iniciar nueva calculación de paciente",
+      "description": "Iniciar nuevo cálculo de paciente",
       "url": "./index.html",
       "icons": [
         {

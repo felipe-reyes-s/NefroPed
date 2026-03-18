@@ -28,8 +28,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="NefroPed" />
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" integrity="sha384-OLnrIp3B0fRuH8K0s/vh746qSGKTchpCz55yPK3+G+NjYoSA03u2PMieJ0yTQ+nE" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
+    <script src="./sweetalert2.js"></script>    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" integrity="sha384-PlRSzpewlarQuj5alIadXwjNUX+2eNMKwr0f07ShWYLy8B6TjEbm7ZlcN/ScSbwy" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
 </head>
@@ -405,11 +404,28 @@
             <div class="report-content" id="reportContent">
                 </div>
             <div class="export-options">
-                <button type="button" class="btn btn--primary" id="copyClipboardButton">📋 Copiar al portapapeles</button>
-                <button type="button" class="btn btn--primary" id="exportWordButton">📄 Descargar Word (.docx)</button>
-                <button type="button" class="btn btn--primary" id="exportPDFButton">📑 Descargar PDF</button>
-                <button type="button" class="btn btn--primary" id="printButton">🖨️ Imprimir</button>
-            </div>
+    <button type="button" class="btn export-btn-primary" id="copyClipboardButton">
+    <i class="fas fa-clipboard icon-left"></i> Copiar al portapapeles
+</button>
+
+    <details class="export-details">
+        <summary class="export-summary">
+            <i class="fas fa-file-export icon-left"></i> Exportar...
+        </summary>
+        <div class="export-dropdown">
+            <button type="button" class="btn export-btn" id="exportPDFButton">
+                <i class="fas fa-file-pdf icon-left"></i> Descargar PDF
+            </button>
+            <button type="button" class="btn export-btn" id="exportWordButton">
+                <i class="fas fa-file-word icon-left"></i> Descargar Word (.docx)
+            </button>
+            <button type="button" class="btn export-btn" id="printButton">
+                <i class="fas fa-print icon-left"></i> Imprimir
+            </button>
+        </div>
+    </details>
+</div>
+
         </section>
 
         <div class="field-count hidden" id="fieldCount" aria-live="polite">0/46</div>

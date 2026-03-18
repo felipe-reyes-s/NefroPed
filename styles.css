@@ -475,11 +475,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     min-height: 44px !important;
     padding: 10px 0 !important;
   }
-  /* Botones de exportación también */
-  .export-options .btn--primary {
-    min-height: 44px;
-    font-size: 14px;
-  }
+ 
 }
 
 /* ============================================
@@ -521,8 +517,109 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 
 .result-value { font-weight: bold; font-size: 1.25em; margin-top: 4px; display: block; }
-.export-options { display: flex; gap: var(--space-12); flex-wrap: wrap; justify-content: center; margin-top: var(--space-16); }
+.export-options {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-12);
+    margin-top: var(--space-24);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.export-details {
+    position: relative;
+}
 
+.export-summary {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-base);
+    color: var(--color-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+    min-height: 40px;
+    height: 40px;        /* ← fuerza altura fija */
+    width: auto !important;  /* ← nunca ancho completo */
+    font-family: var(--font-family-base);
+    transition: all 0.2s ease;
+}
+.export-summary::-webkit-details-marker { display: none; }
+.export-summary:hover { background: var(--color-bg-1); }
+
+/* Dropdown hacia ABAJO por defecto */
+.export-dropdown {
+    position: absolute;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    min-width: 220px;
+    z-index: 100;
+}
+
+/* Botones del dropdown — color primario, no gris */
+.export-btn {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-base);
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    text-align: left;
+    width: 100%;
+    transition: all 0.2s ease;
+    font-family: var(--font-family-base);
+}
+.export-btn:hover {
+    background: var(--color-bg-1);
+}
+
+/* Botón copiar — tamaño normal, no btn-calcular */
+.export-btn-primary {
+    background: var(--color-primary);
+    color: var(--color-btn-primary-text);
+    border: none;
+    border-radius: var(--radius-base);
+    padding: var(--space-8) var(--space-16);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    min-height: 40px;
+    font-family: var(--font-family-base);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.export-btn-primary:hover {
+    background: var(--color-primary-hover);
+}
+
+/* Móvil */
+@media (max-width: 768px) {
+    .export-options {
+        flex-direction: column;
+        align-items: center;
+    }
+    .export-details { width: 100%; display: flex; justify-content: center; }
+    .export-summary {
+        justify-content: center;
+    }
+    .export-dropdown {
+        position: absolute;
+        width: auto;
+        min-width: 220px;
+    }
+    .export-details:not([open]) .export-dropdown {
+    display: none;
+}
+}
 /* ============================================
    9. MISCELÁNEA
    ============================================ */

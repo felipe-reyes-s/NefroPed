@@ -74,20 +74,13 @@ const AppState = {
     ecografiaReportText: ""
 };
 
-// ===============================================
-// 3. INICIALIZACIÓN PRINCIPAL (DOMContentLoaded Maestro)
-// ===============================================
 document.addEventListener('DOMContentLoaded', function() {
     if (location.hostname === 'localhost') console.log('🚀 Dev mode');
     
-    // 1. Primero leemos todos los IDs del HTML
-// 1. Leemos los IDs, pero EXCLUIMOS la edad calculada, los checkboxes y los radios
     fieldIds = Array.from(document.querySelectorAll('#clinicalForm input[id], #clinicalForm select[id]'))
         .filter(input => input.id !== 'edad_calculada' && input.type !== 'checkbox' && input.type !== 'radio')
         .map(input => input.id);    
-    // 2. Luego montamos el contador sumando los de texto
     camposParaContador = [...fieldIds, 'sedimento_urinario', 'comentario_nutricional', 'serie_blanca', 'serie_plaquetaria', 'coagulacion'];
-    // 3. Lanzamos el resto de funciones
     configureNumericValidation();
     configurarEventosFechas();
     verifyFieldsExist();
@@ -105,7 +98,72 @@ document.addEventListener('DOMContentLoaded', function() {
     setupSecretTap();
     setupThemeToggle(); 
     setupAutoSave();
+    posicionarDropdownExport(); 
 });
+
+// ===============================================
+// DROPDOWN EXPORTAR — posicionamiento inteligente
+// ===============================================
+function posicionarDropdownExport() {
+    const details = document.querySelector('.export-details');
+    const dropdown = document.querySelector('.export-dropdown');
+    if (!details || !dropdown) return;
+
+    const summary = details.querySelector('.export-summary');
+
+    // Ocultar ANTES de que el navegador lo pinte en posición por defecto
+    summary.addEventListener('click', () => {
+        if (!details.open) {
+            dropdown.style.visibility = 'hidden';
+        }
+    });
+
+    details.addEventListener('toggle', () => {
+        if (!details.open) return;
+
+        dropdown.style.top = '';
+        dropdown.style.bottom = '';
+        dropdown.style.left = '';
+        dropdown.style.right = '';
+
+        const summaryRect = summary.getBoundingClientRect();
+        const detailsRect = details.getBoundingClientRect();
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const isMobile = viewportWidth <= 768;
+
+        const summaryOffsetLeft  = summaryRect.left  - detailsRect.left;
+        const summaryOffsetRight = detailsRect.right - summaryRect.right;
+        const summaryOffsetTop   = summaryRect.top   - detailsRect.top;
+
+        if (isMobile) {
+            dropdown.style.left = summaryOffsetLeft + 'px';
+            dropdown.style.right = 'auto';
+
+            if (summaryRect.bottom + dropdownRect.height > viewportHeight) {
+                dropdown.style.bottom = (detailsRect.bottom - summaryRect.top) + 'px';
+                dropdown.style.top = 'auto';
+            } else {
+                dropdown.style.top = (summaryRect.bottom - detailsRect.top) + 'px';
+                dropdown.style.bottom = 'auto';
+            }
+        } else {
+            if (summaryRect.right + dropdownRect.width > viewportWidth) {
+                dropdown.style.right = summaryOffsetRight + 'px';
+                dropdown.style.left = 'auto';
+            } else {
+                dropdown.style.left = (summaryRect.right - detailsRect.left) + 'px';
+                dropdown.style.right = 'auto';
+            }
+            dropdown.style.top = summaryOffsetTop + 'px';
+            dropdown.style.bottom = 'auto';
+        }
+
+        // Mostrar ya en su posición final, sin parpadeo
+        dropdown.style.visibility = 'visible';
+    });
+}
 
 // ===============================================
 // 4. FUNCIONES DE MODO TEST
@@ -1920,8 +1978,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isIOS()) {
             Swal.fire({
                 title: 'Instalar en iPhone',
-                html: '<div style="font-size: 15px; text-align: left; line-height: 1.6;">Para añadir esta calculadora a tu móvil:<br><br><b>1.</b> Toca el botón <b>Compartir</b> <i class="fas fa-share-square" style="font-size: 18px; color: #0891b2;"></i> en la barra inferior de Safari.<br><b>2.</b> Selecciona <b>"Añadir a la pantalla de inicio"</b> <i class="fas fa-plus-square" style="font-size: 18px; color: #0891b2;"></i>.</div>',                icon: 'info',
-                confirmButtonText: 'Entendido',
+                html: '<div style="font-size: 15px; text-align: left; line-height: 1.6;">Para añadir esta calculadora a tu móvil:<br><br><b>1.</b> Toca el botón <b>Compartir</b> <i class="fas fa-arrow-up-from-square" style="font-size: 18px; color: #0891b2;"></i> en la barra inferior de Safari.<br><b>2.</b> Selecciona <b>"Añadir a la pantalla de inicio"</b> <i class="fas fa-plus-square" style="font-size: 18px; color: #0891b2;"></i>.</div>',                confirmButtonText: 'Entendido',
                 confirmButtonColor: '#0891b2',
                 background: document.documentElement.getAttribute('data-color-scheme') === 'dark' ? '#1e293b' : '#fff',
                 color: document.documentElement.getAttribute('data-color-scheme') === 'dark' ? '#f1f5f9' : '#0f172a'

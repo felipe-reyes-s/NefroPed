@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nefroped-v32'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
+const CACHE_NAME = 'nefroped-v33'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
 
 
 const urlsToCache = [
@@ -7,9 +7,11 @@ const urlsToCache = [
   './styles.css',
   './scripts.js',
   './sweetalert2.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  './jspdf.js',
+  './filesaver.js',
+  './purify.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap'
 ];
 
 // ── INSTALL ───────────────────────────────────────────────────────────────────

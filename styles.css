@@ -537,7 +537,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     background: transparent;
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-base);
-    color: var(--color-primary);
+    color: var(--color-primary)!important;
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
@@ -550,7 +550,15 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 .export-summary::-webkit-details-marker { display: none; }
 .export-summary:hover { background: var(--color-bg-1); }
+.export-dropdown a,
+.export-dropdown button {
+    color: var(--color-primary) !important;
+}
 
+.export-dropdown a:hover,
+.export-dropdown button:hover {
+    color: var(--color-primary-hover) !important;
+}
 /* Dropdown hacia ABAJO por defecto */
 .export-dropdown {
     position: absolute;

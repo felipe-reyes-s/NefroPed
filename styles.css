@@ -483,6 +483,14 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 .btn-theme-footer:hover { background: var(--color-surface); border-color: var(--color-primary); color: var(--color-primary); transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .btn-theme-footer i { font-size: 12px; }
+.footer-acciones {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 12px 0;
+}
 
 /* En pantallas muy pequeñas (iPhone SE, Xiaomi Entry) */
 @media (max-width: 380px) {

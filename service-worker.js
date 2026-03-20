@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nefroped-v34'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
+const CACHE_NAME = 'nefroped-v35'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
 
 
 const urlsToCache = [
@@ -6,16 +6,16 @@ const urlsToCache = [
   './index.html',
   './styles.css',
   './scripts.js',
-  './sweetalert2.js',
-  './jspdf.js',
-  './filesaver.js',
-  './purify.js',
+  './libs/sweetalert2.js',
+  './libs/jspdf.js',
+  './libs/filesaver.js',
+  './libs/purify.js',
   
   // Archivos de la tipografía Geist
-  './fonts/geist-v1-latin-regular.woff2',
-  './fonts/geist-v1-latin-500.woff2',
-  './fonts/geist-v1-latin-600.woff2',
-  './fonts/geist-v1-latin-700.woff2',
+  './fonts/geist-v4-latin-regular.woff2',
+  './fonts/geist-v4-latin-500.woff2',
+  './fonts/geist-v4-latin-600.woff2',
+  './fonts/geist-v4-latin-700.woff2',
   
   // Archivos de FontAwesome
   './fontawesome/css/all.min.css',
@@ -23,8 +23,8 @@ const urlsToCache = [
   './fontawesome/webfonts/fa-solid-900.ttf',
   './fontawesome/webfonts/fa-regular-400.woff2',
   './fontawesome/webfonts/fa-regular-400.ttf',
-  './fontawesome/webfonts/v4-compatibility.woff2',
-  './fontawesome/webfonts/v4-compatibility.ttf'
+  './fontawesome/webfonts/fa-v4compatibility.woff2',
+  './fontawesome/webfonts/fa-v4compatibility.ttf'
 ];
 
 // ── INSTALL ───────────────────────────────────────────────────────────────────
@@ -60,10 +60,12 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
 
   // 1. Analytics → Network Only (nunca cachear)
-  if (url.hostname.includes('goatcounter')) {
-    event.respondWith(fetch(request));
+if (url.hostname.includes('goatcounter') || url.hostname.includes('gc.zgo.at')) {
+    event.respondWith(
+        fetch(request).catch(() => new Response('', { status: 200 }))
+    );
     return;
-  }
+}
 
   // 2. Assets estáticos propios → Cache First
   const esAssetEstatico =

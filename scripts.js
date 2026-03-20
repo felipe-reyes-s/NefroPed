@@ -35,6 +35,7 @@ if ('serviceWorker' in navigator) {
 }
 
 function mostrarAvisoActualizacion(worker) {
+    const isDark = document.documentElement.getAttribute('data-color-scheme') === 'dark';
     const Toast = Swal.mixin({
         toast: true,
         position: 'bottom-end',
@@ -43,11 +44,10 @@ function mostrarAvisoActualizacion(worker) {
         showCancelButton: true,
         cancelButtonText: 'Más tarde',
         timer: null,
-        background: '#333',
-        color: '#fff',
-        confirmButtonColor: '#21808d'
+        background: isDark ? '#1e293b' : '#ffffff',
+        color:      isDark ? '#f1f5f9' : '#0f172a',
+        confirmButtonColor: 'var(--color-primary)'
     });
-
     Toast.fire({
         icon: 'info',
         title: 'Nueva versión disponible'
@@ -57,7 +57,6 @@ function mostrarAvisoActualizacion(worker) {
         }
     });
 }
-
 // ===============================================
 // 2. VARIABLES GLOBALES Y CONFIGURACIÓN
 // ===============================================
@@ -73,6 +72,72 @@ const AppState = {
     valoresFueraRango: [],
     ecografiaReportText: ""
 };
+
+const PDF_PALETTE = {
+    TEAL:   [8,   145, 178],
+    RED:    [220,  38,  38],
+    DARK:   [30,   41,  59],
+    GREY:   [100, 116, 139],
+    LGREY:  [226, 232, 240],
+    LGREY2: [241, 245, 249],
+    LGREY3: [248, 250, 252],
+    RED_BG: [254, 242, 242],
+    WHITE:  [255, 255, 255],
+};
+// ─── ÚNICA FUENTE DE VERDAD DE PARÁMETROS ───────────────────────────────────
+const PARAMETROS = {
+    superficiecorporal:  { label: 'Superficie Corporal',    unit: 'm²'            },
+    imc:                 { label: 'IMC',                    unit: 'kg/m²'         },
+    vpercent:            { label: 'V%',                     unit: '%'             },
+    schwartz_neo:        { label: 'eGFR Schwartz neonatal', unit: 'ml/min/1.73m²' },
+    schwartz_lact:       { label: 'eGFR Schwartz lactante', unit: 'ml/min/1.73m²' },
+    schwartz_bedside:    { label: 'eGFR Schwartz Bedside',  unit: 'ml/min/1.73m²' },
+    bokenkamp:           { label: 'eGFR Böckenkamp',        unit: 'ml/min/1.73m²' },
+    ckid_u25_cr:         { label: 'eGFR CKiD U25 Cr',       unit: 'ml/min/1.73m²' },
+    ekfc_cr:             { label: 'eGFR EKFC Cr',           unit: 'ml/min/1.73m²' },
+    ckid_u25_cistc:      { label: 'eGFR CKiD U25 CistC',   unit: 'ml/min/1.73m²' },
+    ekfc_cistc:          { label: 'eGFR EKFC CystC',        unit: 'ml/min/1.73m²' },
+    ckid_u25_combinado:  { label: 'eGFR Combinado',         unit: 'ml/min/1.73m²' },
+    efna:                { label: 'EF Na',                  unit: ''             },
+    efau:                { label: 'EF AU',                  unit: ''             },
+    efk:                 { label: 'EF K',                   unit: ''             },
+    efcl:                { label: 'EF Cl',                  unit: ''             },
+    cacr:                { label: 'Ca/Cr',                  unit: 'mg/mg'         },
+    mgcr:                { label: 'Mg/Cr',                  unit: 'mg/mg'         },
+    pcr:                 { label: 'P/Cr',                   unit: 'mg/mg'         },
+    rtp:                 { label: 'RTP',                    unit: '%'             },
+    aucr:                { label: 'AU/Cr',                  unit: 'mg/mg'         },
+    oxalatocr:           { label: 'Oxalato/Cr',             unit: 'mg/mg'         },
+    albcr:               { label: 'Alb/Cr',                 unit: 'mg/g'          },
+    protcr:              { label: 'Prot/Cr',                unit: 'mg/g'          },
+    citratocr:           { label: 'Citrato/Cr',             unit: 'mg/mg'         },
+    cacitrato:           { label: 'Ca/Citrato',             unit: ''              },
+    nak:                 { label: 'Na/K orina',             unit: ''              },
+    uricosuria:          { label: 'Uricosuria',             unit: 'mg/1.73m²/día' },
+    calciuria:           { label: 'Calciuria',              unit: 'mg/kg/día'     },
+    citraturia:          { label: 'Citraturia',             unit: 'mg/kg/día'     },
+    fosfaturia:          { label: 'Fosfaturia',             unit: 'mg/kg/día'     },
+    oxaluria:            { label: 'Oxaluria',               unit: 'mg/1.73m²/día' },
+    magnesuria:          { label: 'Magnesuria',             unit: 'mg/kg/día'     },
+    albuminuria:         { label: 'Albuminuria',            unit: 'mg/1.73m²/día' },
+    proteinuria:         { label: 'Proteinuria',            unit: 'mg/m²/día'     },
+    proteinuriaestimada: { label: 'Proteinuria estimada',   unit: 'mg/m²/día'     },
+};
+
+const SECCIONES = [
+    { titulo: 'Datos Generales',
+      keys: ['superficiecorporal','imc'] },
+    { titulo: 'Filtrado Glomerular (eGFR) ml/min/1.73m²',
+      keys: ['vpercent','schwartz_neo','schwartz_lact','schwartz_bedside','bokenkamp','ckid_u25_cr','ekfc_cr','ckid_u25_cistc','ekfc_cistc','ckid_u25_combinado'] },
+    { titulo: 'Excreción Fraccional',
+      keys: ['efna','efau','efk','efcl'] },
+    { titulo: 'Índices Urinarios (Orina Puntual)',
+      keys: ['cacr','mgcr','pcr','rtp','aucr','albcr','oxalatocr','protcr','citratocr','nak','cacitrato'] },
+    { titulo: 'Excreción en 24h',
+      keys: ['uricosuria','calciuria','citraturia','fosfaturia','magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] },
+];
+// ────────────────────────────────────────────────────────────────────────────
+
 
 document.addEventListener('DOMContentLoaded', function() {
     if (location.hostname === 'localhost') console.log('🚀 Dev mode');
@@ -320,50 +385,46 @@ return String(str)
 .replace(/"/g, '&quot;')
 .replace(/'/g, '&#039;');
 }
+function parseFecha(str) {
+    if (!str || !str.includes('/')) return null;
+    const [dia, mes, anio] = str.split('/').map(Number);
+    if (!dia || !mes || !anio || anio < 1900) return null;
+    const fecha = new Date(anio, mes - 1, dia);
+    if (fecha.getDate() !== dia || fecha.getMonth() !== mes - 1 || fecha.getFullYear() !== anio) return null;
+    return fecha;
+}
+
 function calcularEdad() {
-    const fechaNac = document.getElementById('fecha_nacimiento').value;
-    const fechaAnal = document.getElementById('fecha_analitica').value;
-    if (!fechaNac || !fechaAnal) return;
-    
-    const [diaNac, mesNac, añoNac] = fechaNac.split('/').map(Number);
-    const [diaAnal, mesAnal, añoAnal] = fechaAnal.split('/').map(Number);
-    if (!diaNac || !mesNac || !añoNac || !diaAnal || !mesAnal || !añoAnal) return;
-    
-    const nacimiento = new Date(añoNac, mesNac - 1, diaNac);
-    const analitica = new Date(añoAnal, mesAnal - 1, diaAnal);
+    const strNac  = document.getElementById('fecha_nacimiento').value;
+    const strAnal = document.getElementById('fecha_analitica').value;
+    if (!strNac || !strAnal) return;
 
-    // Validación fechas imposibles (ej. 31/02/2020)
-    if (
-        nacimiento.getDate() !== diaNac || nacimiento.getMonth() !== mesNac - 1 || nacimiento.getFullYear() !== añoNac ||
-        analitica.getDate() !== diaAnal || analitica.getMonth() !== mesAnal - 1 || analitica.getFullYear() !== añoAnal
-    ) {
-        document.getElementById('edad_calculada').value = 'Fecha inexistente';
-        return;
-    }
+    const nacimiento = parseFecha(strNac);
+    const analitica  = parseFecha(strAnal);
 
-    if (nacimiento >= analitica) {
-        document.getElementById('edad_calculada').value = 'Fechas inválidas';
-        return;
-    }
+    if (!nacimiento) { document.getElementById('edad_calculada').value = 'Fecha inexistente'; return; }
+    if (!analitica)  { document.getElementById('edad_calculada').value = 'Fecha inexistente'; return; }
 
-    // ── NUEVO: bloqueo fechas futuras ──────────────────────────
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     if (nacimiento > hoy || analitica > hoy) {
-        document.getElementById('edad_calculada').value = 'Fecha futura';
-        return;
+        document.getElementById('edad_calculada').value = 'Fecha futura'; return;
     }
-    // ──────────────────────────────────────────────────────────
+    if (nacimiento >= analitica) {
+        document.getElementById('edad_calculada').value = 'Fechas inválidas'; return;
+    }
 
-    let años = añoAnal - añoNac;
+    const [diaNac, mesNac]            = strNac.split('/').map(Number);
+    const [diaAnal, mesAnal, añoAnal] = strAnal.split('/').map(Number);
+    const añoNac = nacimiento.getFullYear();
+
+    let años  = añoAnal - añoNac;
     let meses = mesAnal - mesNac;
     if (diaAnal < diaNac) meses--;
     if (meses < 0) { años--; meses += 12; }
-    
+
     document.getElementById('edad_calculada').value = `${años} años ${meses} meses`;
-    
-    AppState.edadEnAños = años;
-    AppState.edadEnMeses = meses;
+    AppState.edadEnAños     = años;
+    AppState.edadEnMeses    = meses;
     AppState.edadTotalMeses = años * 12 + meses;
 }
 
@@ -456,6 +517,7 @@ function configureNumericValidation() {
 }
 
 function verifyFieldsExist() {
+    if (location.hostname !== 'localhost') return;
     let missingFields = [];
     fieldIds.forEach(fieldId => { if (!document.getElementById(fieldId)) missingFields.push(fieldId); });
     if (missingFields.length > 0) console.error('❌ Campos faltantes:', missingFields);
@@ -576,6 +638,42 @@ function setupButtons() {
     
     const printButton = document.getElementById('printButton');
     if (printButton) printButton.addEventListener('click', printReport);
+    const btnAcercaDe = document.getElementById('btn-acerca-de');
+    if (btnAcercaDe) {
+        btnAcercaDe.addEventListener('click', () => {
+            Swal.fire({
+                title: '<strong>Acerca de NefroPed</strong>',
+                icon: 'info',
+                html: `
+                    <p style="text-align:left; font-size:14px; line-height:1.7; color:var(--color-text-secondary)">
+                        <strong style="color:var(--color-primary)">NefroPed</strong> nace de la necesidad clínica 
+                        de agilizar y estandarizar los cálculos nefrológicos en la práctica pediátrica diaria, 
+                        poniendo a disposición del profesional sanitario fórmulas validadas y valores de referencia 
+                        actualizados en una herramienta accesible y segura.
+                    </p>
+                    <hr style="border-color:var(--color-border); margin:12px 0">
+                    <p style="text-align:left; font-size:13px; line-height:1.8">
+                        <i class="fas fa-stethoscope" style="color:var(--color-primary)"></i>
+                        <strong> Idea y validación médica</strong><br>
+                        Dra. Ana María Ortega Morales<br>
+                        <span style="color:var(--color-text-secondary)">FEA Pediatría · Hospital Universitario San Cecilio (HUSC), Granada</span>
+                    </p>
+                    <p style="text-align:left; font-size:13px; line-height:1.8; margin-top:8px">
+                        <i class="fas fa-code" style="color:var(--color-primary)"></i>
+                        <strong> Desarrollo y arquitectura de software</strong><br>
+                        Felipe Reyes
+                    </p>
+                    <hr style="border-color:var(--color-border); margin:12px 0">
+                    <p style="text-align:center; font-size:11px; color:var(--color-text-secondary)">
+                        v2.0 · 2026 · Uso exclusivo para profesionales sanitarios
+                    </p>
+                `,
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: 'var(--color-primary)',
+                showCloseButton: true,
+            });
+        });
+    }
 }
 
 function confirmarLimpiarFormulario() {
@@ -808,53 +906,33 @@ function calculateResults() {
         return; // Fin de la función, la página no se altera
     }
 
-// 2. BLINDAJE DE FECHAS: Evitar viajes en el tiempo y fechas inventadas
-    const inputFechaNac = document.getElementById('fecha_nacimiento')?.value;
-    const inputFechaAnal = document.getElementById('fecha_analitica')?.value;
-    
-    if (inputFechaNac && inputFechaAnal) {
-        const [diaNac, mesNac, añoNac] = inputFechaNac.split('/').map(Number);
-        const [diaAnal, mesAnal, añoAnal] = inputFechaAnal.split('/').map(Number);
-        const fechaNacimiento = new Date(añoNac, mesNac - 1, diaNac);
-        const fechaAnalitica = new Date(añoAnal, mesAnal - 1, diaAnal);
-        
-        // BLOQUEO A: Fechas inexistentes (ej. 31 de febrero o 29 feb en año NO bisiesto)
-        if (
-            fechaNacimiento.getDate() !== diaNac || fechaNacimiento.getMonth() !== mesNac - 1 || fechaNacimiento.getFullYear() !== añoNac ||
-            fechaAnalitica.getDate() !== diaAnal || fechaAnalitica.getMonth() !== mesAnal - 1 || fechaAnalitica.getFullYear() !== añoAnal
-        ) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Fecha inexistente',
-                text: 'Has introducido una fecha que no existe en el calendario (revise los días 31 y los años bisiestos).',
-                confirmButtonColor: '#ef4444'
-            });
-            return; // Cortamos la ejecución, no se calcula nada
-        }
+    // 2. BLINDAJE DE FECHAS
+    const strNac  = document.getElementById('fecha_nacimiento')?.value;
+    const strAnal = document.getElementById('fecha_analitica')?.value;
 
-        // BLOQUEO B: Viajes en el tiempo (analítica antes de nacer)
+    if (strNac && strAnal) {
+        const fechaNacimiento = parseFecha(strNac);
+        const fechaAnalitica  = parseFecha(strAnal);
+
+        if (!fechaNacimiento || !fechaAnalitica) {
+            Swal.fire({ icon: 'error', title: 'Fecha inexistente',
+                text: 'Has introducido una fecha que no existe en el calendario (revisa los días 31 y los años bisiestos).',
+                confirmButtonColor: '#ef4444' });
+            return;
+        }
         if (fechaAnalitica < fechaNacimiento) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Fechas incongruentes',
-                text: 'La fecha de la analítica no puede ser anterior a la fecha de nacimiento. Por favor, corríjalas para continuar.',
-                confirmButtonColor: '#ef4444' 
-            });
-            return; // Cortamos la ejecución, no se calcula nada
+            Swal.fire({ icon: 'error', title: 'Fechas incongruentes',
+                text: 'La fecha de la analítica no puede ser anterior a la fecha de nacimiento.',
+                confirmButtonColor: '#ef4444' });
+            return;
         }
-        // BLOQUEO C: fechas futuras
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            if (fechaNacimiento > hoy || fechaAnalitica > hoy) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Fechas incongruentes',
-                    text: 'Las fechas no pueden ser posteriores a hoy.',
-                    confirmButtonColor: '#ef4444'
-                });
-                return;
-            }
-
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        if (fechaNacimiento > hoy || fechaAnalitica > hoy) {
+            Swal.fire({ icon: 'error', title: 'Fechas incongruentes',
+                text: 'Las fechas no pueden ser posteriores a hoy.',
+                confirmButtonColor: '#ef4444' });
+            return;
+        }
     }
     // 3. Si hay datos y las fechas tienen sentido lógico, validamos qué falta
     const camposVacios = validarTodosCampos();
@@ -907,15 +985,12 @@ function performMedicalCalculations(data) {
     const sexo = data.sexo;
 
     let diasVida = 0;
-    const inputFechaNac = document.getElementById('fecha_nacimiento');
-    const inputFechaAnal = document.getElementById('fecha_analitica');
-    if (inputFechaNac && inputFechaAnal && inputFechaNac.value && inputFechaAnal.value) {
-        const [diaNac, mesNac, añoNac] = inputFechaNac.value.split('/').map(Number);
-        const [diaAnal, mesAnal, añoAnal] = inputFechaAnal.value.split('/').map(Number);
-        const fechaNacimiento = new Date(añoNac, mesNac - 1, diaNac);
-        const fechaAnalitica = new Date(añoAnal, mesAnal - 1, diaAnal);
-        diasVida = Math.floor((fechaAnalitica.getTime() - fechaNacimiento.getTime()) / (1000 * 3600 * 24));
+    const fechaNacObj  = parseFecha(data.fecha_nacimiento);
+    const fechaAnalObj = parseFecha(data.fecha_analitica);
+    if (fechaNacObj && fechaAnalObj) {
+        diasVida = Math.floor((fechaAnalObj.getTime() - fechaNacObj.getTime()) / (1000 * 3600 * 24));
     }
+
 
     let schwartz_neo = 0, schwartz_lact = 0, schwartz_bedside = 0, bokenkamp = 0, ekfc_cr = 0, ekfc_cistc = 0;
     let ckid_u25_cr = 0, ckid_u25_cistc = 0, ckid_u25_combinado = 0;
@@ -1070,37 +1145,8 @@ function displayResults() {
     if (!results) return;
     const edad = AppState.edadEnAños || 0;
     const edadMeses = AppState.edadEnMeses || 0;
-    
-    const parametros = [
-        { key: 'vpercent', nombre: 'V%', unidad: '%' }, 
-        { key: 'schwartz_neo', nombre: 'eGFR Schwartz neonatal', unidad: 'ml/min/1.73m²' },
-        { key: 'schwartz_lact', nombre: 'eGFR Schwartz lactante', unidad: 'ml/min/1.73m²' },
-        { key: 'bokenkamp', nombre: 'eGFR Bökenkamp', unidad: 'ml/min/1.73m²' },
-        { key: 'schwartz_bedside', nombre: 'eGFR Schwartz Bedside', unidad: 'ml/min/1.73m²' },
-        { key: 'ckid_u25_cr', nombre: 'eGFR CKiD U25 Cr', unidad: 'ml/min/1.73m²' }, 
-        { key: 'ckid_u25_cistc', nombre: 'eGFR CKiD U25 CistC', unidad: 'ml/min/1.73m²' }, 
-        { key: 'ckid_u25_combinado', nombre: 'eGFR Combinado', unidad: 'ml/min/1.73m²' }, 
-        { key: 'ekfc_cr', nombre: 'eGFR EKFC Cr', unidad: 'ml/min/1.73m²' },
-        { key: 'ekfc_cistc', nombre: 'eGFR EKFCCystC', unidad: 'ml/min/1.73m²' }, // Corregido aquí
-        { key: 'efau', nombre: 'EF AU', unidad: '' }, { key: 'efna', nombre: 'EF Na', unidad: '' }, { key: 'efk', nombre: 'EF K', unidad: '' }, { key: 'efcl', nombre: 'EF Cl', unidad: '' }, { key: 'cacr', nombre: 'Ca/Cr', unidad: 'mg/mg' }, { key: 'rtp', nombre: 'RTP', unidad: '%' }, { key: 'mgcr', nombre: 'Mg/Cr', unidad: 'mg/mg' }, { key: 'pcr', nombre: 'P/Cr', unidad: 'mg/mg' }, { key: 'aucr', nombre: 'AU/Cr', unidad: 'mg/mg' }, { key: 'citratocr', nombre: 'Citrato/Cr', unidad: 'mg/mg' }, { key: 'cacitrato', nombre: 'Ca/Citrato', unidad: '' }, { key: 'oxalatocr', nombre: 'Oxalato/Cr', unidad: 'mg/mg' }, { key: 'albcr', nombre: 'Alb/Cr', unidad: 'mg/g' }, { key: 'protcr', nombre: 'Prot/Cr', unidad: 'mg/g' }, { key: 'nak', nombre: 'Na/K orina', unidad: '' }, { key: 'uricosuria', nombre: 'Uricosuria', unidad: 'mg/1.73m²/día' }, { key: 'calciuria', nombre: 'Calciuria', unidad: 'mg/kg/día' }, { key: 'citraturia', nombre: 'Citraturia', unidad: 'mg/kg/día' }, { key: 'fosfaturia', nombre: 'Fosfaturia', unidad: 'mg/kg/día' }, { key: 'oxaluria', nombre: 'Oxaluria', unidad: 'mg/1.73m²/día' }, { key: 'magnesuria', nombre: 'Magnesuria', unidad: 'mg/kg/día' }, { key: 'albuminuria', nombre: 'Albuminuria', unidad: 'mg/1.73m²/día' }, { key: 'proteinuria', nombre: 'Proteinuria', unidad: 'mg/m²/día' }, { key: 'proteinuriaestimada', nombre: 'Proteinuria estimada', unidad: 'mg/m²/día' }
-    ];
-    
-    const resultLabels = {
-        superficiecorporal: 'Superficie Corporal (m²)', imc: 'IMC (kg/m²)', vpercent: 'V% (creat enz/orina)', 
-        schwartz_neo: 'eGFR Schwartz neonatal', schwartz_lact: 'eGFR Schwartz lactante',
-        schwartz_bedside: 'eGFR Schwartz Bedside', bokenkamp: 'eGFR Bökenkamp',
-        ekfc_cr: 'eGFR EKFC Cr', ekfc_cistc: 'eGFR EKFCCystC', // Corregido aquí
-        ckid_u25_cr: 'eGFR CKiD U25 Cr', ckid_u25_cistc: 'eGFR CKiD U25 CistC', ckid_u25_combinado: 'eGFR Combinado', 
-        efna: 'EF Na (%)', efk: 'EF K (%)', efcl: 'EF Cl (%)', efau: 'EF AU (%)', cacr: 'Ca/Cr (mg/mg)', mgcr: 'Mg/Cr (mg/mg)', pcr: 'P/Cr (mg/mg)', aucr: 'AU/Cr (mg/mg)', albcr: 'Alb/Cr (mg/g)', protcr: 'Prot/Cr (mg/g)', citratocr: 'Citrato/Cr (mg/mg)', oxalatocr: 'Oxalato/Cr (mg/mg)', nak: 'Na/K orina', cacitrato: 'Ca/Citrato', rtp: 'RTP (%)', uricosuria: 'Uricosuria (mg/1.73m²/día)', calciuria: 'Calciuria (mg/kg/día)', citraturia: 'Citraturia (mg/kg/día)', fosfaturia: 'Fosfaturia (mg/kg/día)', magnesuria: 'Magnesuria (mg/kg/día)', oxaluria: 'Oxaluria (mg/1.73m²/día)', albuminuria: 'Albuminuria (mg/1.73m²/día)', proteinuria: 'Proteinuria (mg/m²/día)', proteinuriaestimada: 'Proteinuria estimada (mg/m²/día)'
-    };
 
-   const categorias = [
-        { titulo: "Datos Generales", keys: ['superficiecorporal', 'imc'] },
-        { titulo: "Filtrado Glomerular (eGFR en ml/min/1.73m²)", keys: ['vpercent', 'schwartz_neo', 'schwartz_lact', 'schwartz_bedside', 'bokenkamp', 'ckid_u25_cr', 'ekfc_cr', 'ckid_u25_cistc', 'ekfc_cistc', 'ckid_u25_combinado'] },
-        { titulo: "Excreción Fraccional", keys: ['efna', 'efk', 'efcl', 'efau'] },
-        { titulo: "Índices Urinarios (Orina Puntual)", keys: ['cacr', 'mgcr', 'pcr', 'aucr', 'albcr', 'protcr', 'citratocr', 'oxalatocr', 'nak', 'cacitrato', 'rtp'] },
-        { titulo: "Excreción en 24h", keys: ['uricosuria', 'calciuria', 'citraturia', 'fosfaturia', 'magnesuria', 'oxaluria', 'albuminuria', 'proteinuria', 'proteinuriaestimada'] }
-    ];
+ 
     
     const resultsGrid = document.getElementById('resultsGrid');
     resultsGrid.innerHTML = '';
@@ -1111,26 +1157,32 @@ function displayResults() {
     if(emptyState) emptyState.classList.add('hidden');
  
     AppState.valoresFueraRango = []; 
+    
 
-    parametros.forEach(param => {
-        const valor = results[param.key];
-        if (valor && valor !== 0) {
-            const evaluacion = evaluarRango(param.key, valor, edad, edadMeses);
-            if (!evaluacion.enRango) {
-                const tipoFuera = evaluacion.tipo === 'alto' ? 'por encima de rango' : 'por debajo de rango';
-                AppState.valoresFueraRango.push(`${param.nombre} ${param.unidad ? `(${param.unidad})` : ''}: ${valor.toFixed(2)}${param.unidad} ${tipoFuera} (VN ${evaluacion.rangoTexto})`);
-            }
+   Object.entries(PARAMETROS).forEach(([key, param]) => {
+    const valor = results[key];
+    if (valor && valor !== 0) {
+        const evaluacion = evaluarRango(key, valor, edad, edadMeses);
+        if (!evaluacion.enRango) {
+            const tipoFuera = evaluacion.tipo === 'alto' ? 'por encima de rango' : 'por debajo de rango';
+            AppState.valoresFueraRango.push(
+    `${param.label}${param.unit ? ` (${param.unit})` : ''}: ${valor.toFixed(2)}${param.unit || ''} ${tipoFuera} (VN ${evaluacion.rangoTexto})`);
+
         }
-    });
+    }
+});
+
     
     let htmlFinal = "";
 
-    categorias.forEach(cat => {
-        let itemsHTML = "";
-        cat.keys.forEach(key => {
-            const valor = results[key];
-            if (valor && valor !== 0) {
-                const label = resultLabels[key];
+    SECCIONES.forEach(cat => {
+    let itemsHTML = '';
+    cat.keys.forEach(key => {
+        const valor = results[key];
+        if (valor && valor !== 0) {
+            const p = PARAMETROS[key];
+            const label = p ? `${p.label}${p.unit ? ' (' + p.unit + ')' : ''}` : key;
+
                 const numValue = typeof valor === 'number' ? valor.toFixed(2) : '0.00';
                 
                 let colorStyle = 'color: var(--color-primary) !important; font-weight: bold;';
@@ -1454,54 +1506,6 @@ function buildReportHTML() {
     const get   = id => document.getElementById(id)?.value || '—';
     const sexoStr = get('sexo') === 'M' ? 'Masculino' : 'Femenino';
 
-    const labels = {
-        superficiecorporal:'Superficie Corporal', imc:'IMC',
-        vpercent:'V% creatinina enz/orina',
-        schwartzneo:'Schwartz neonatal', schwartzlact:'Schwartz lactante',
-        schwartzbedside:'Schwartz Bedside', bokenkamp:'Bökenkamp',
-        ekfccr:'EKFC Cr', ekfccistc:'EKFC CistC',
-        ckidu25cr:'CKiD U25 Cr', ckidu25cistc:'CKiD U25 CistC',
-        ckidu25combinado:'CKiD U25 Combinado',
-        efna:'EF Na', efk:'EF K', efcl:'EF Cl', efau:'EF AU',
-        cacr:'Ca/Cr', mgcr:'Mg/Cr', pcr:'P/Cr', aucr:'AU/Cr',
-        albcr:'Alb/Cr', protcr:'Prot/Cr', citratocr:'Citrato/Cr',
-        oxalatocr:'Oxalato/Cr', nak:'Na/K orina', cacitrato:'Ca/Citrato', rtp:'RTP',
-        uricosuria:'Uricosuria', calciuria:'Calciuria', citraturia:'Citraturia',
-        fosfaturia:'Fosfaturia', magnesuria:'Magnesuria', oxaluria:'Oxaluria',
-        albuminuria:'Albuminuria', proteinuria:'Proteinuria',
-        proteinuriaestimada:'Proteinuria estimada'
-    };
-    const units = {
-        superficiecorporal:'m2', imc:'kg/m2', vpercent:'%',
-        schwartzneo:'ml/min/1.73m2', schwartzlact:'ml/min/1.73m2',
-        schwartzbedside:'ml/min/1.73m2', bokenkamp:'ml/min/1.73m2',
-        ekfccr:'ml/min/1.73m2', ekfccistc:'ml/min/1.73m2',
-        ckidu25cr:'ml/min/1.73m2', ckidu25cistc:'ml/min/1.73m2',
-        ckidu25combinado:'ml/min/1.73m2',
-        efna:'%', efk:'%', efcl:'%', efau:'%',
-        cacr:'mg/mg', mgcr:'mg/mg', pcr:'mg/mg', aucr:'mg/mg',
-        albcr:'mg/g', protcr:'mg/g', citratocr:'mg/mg', oxalatocr:'mg/mg',
-        nak:'', cacitrato:'', rtp:'%',
-        uricosuria:'mg/1.73m2/dia', calciuria:'mg/kg/dia', citraturia:'mg/kg/dia',
-        fosfaturia:'mg/kg/dia', magnesuria:'mg/kg/dia', oxaluria:'mg/1.73m2/dia',
-        albuminuria:'mg/1.73m2/dia', proteinuria:'mg/m2/dia',
-        proteinuriaestimada:'mg/m2/dia'
-    };
-    const secciones = [
-        { titulo:'DATOS GENERALES',
-          keys:['superficiecorporal','imc'] },
-        { titulo:'FILTRADO GLOMERULAR — eGFR (ml/min/1.73m2)',
-          keys:['vpercent','schwartzneo','schwartzlact','schwartzbedside','bokenkamp',
-                'ckidu25cr','ekfccr','ckidu25cistc','ekfccistc','ckidu25combinado'] },
-        { titulo:'EXCRECIÓN FRACCIONAL',
-          keys:['efna','efk','efcl','efau'] },
-        { titulo:'ÍNDICES URINARIOS — ORINA PUNTUAL',
-          keys:['cacr','mgcr','pcr','aucr','albcr','protcr',
-                'citratocr','oxalatocr','nak','cacitrato','rtp'] },
-        { titulo:'EXCRECIÓN EN 24 HORAS',
-          keys:['uricosuria','calciuria','citraturia','fosfaturia',
-                'magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] }
-    ];
 
     let html = '';
 
@@ -1540,7 +1544,7 @@ function buildReportHTML() {
     </table>`;
 
     // ── Secciones de resultados ───────────────────────
-    secciones.forEach(sec => {
+    SECCIONES.forEach(sec => {
         const filas = sec.keys.filter(k => R[k] && R[k] !== 0 && !isNaN(R[k]));
         if (!filas.length) return;
 
@@ -1563,15 +1567,16 @@ function buildReportHTML() {
                         ? evaluarRango(key, val, edad, edadM)
                         : { enRango: true, rangoTexto: '' };
 
+            const p = PARAMETROS[key];
             let valorTexto = parseFloat(val).toFixed(2);
-            if (units[key]) valorTexto += ' ' + units[key];
+            if (p?.unit) valorTexto += ' ' + p.unit;
 
             const bg    = i % 2 === 0 ? '#ffffff' : '#f8fafc';
             const color = ev.enRango ? '#0891b2' : '#dc2626';
 
             html += `
           <tr style="background:${bg};">
-            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${labels[key]||key}</td>
+            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${p?.label || key}</td>
             <td style="padding:5px 10px;font-size:12px;font-weight:bold;color:${color};font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${valorTexto}</td>
             <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${(ev.rangoTexto || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>          </tr>`;
         });
@@ -1672,12 +1677,6 @@ function exportToPDF() {
             const R    = AppState.calculatedResults;
             const edad = AppState.edadEnAños || 0;
             const edadM = AppState.edadEnMeses || 0;
-
-            // ── Paleta ──
-            const TEAL  = [8,145,178], RED   = [220,38,38],
-                  DARK  = [30,41,59],  GREY  = [100,116,139],
-                  LGREY = [226,232,240], WHITE = [255,255,255];
-
             const margin = 14, pageW = 210, pageH = 297;
             const maxW = pageW - margin * 2;
             let y = 0;
@@ -1686,9 +1685,9 @@ function exportToPDF() {
             const check   = (h = 7) => { if (y + h > pageH - 12) newPage(); };
 
             // ══ CABECERA ══════════════════════════════════
-            doc.setFillColor(...TEAL);
+            doc.setFillColor(...PDF_PALETTE.TEAL);
             doc.rect(0, 0, pageW, 20, 'F');
-            doc.setTextColor(...WHITE);
+            doc.setTextColor(...PDF_PALETTE.WHITE);
             doc.setFont('helvetica','bold'); doc.setFontSize(15);
             doc.text('NefroPed', margin, 13);
             doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
@@ -1701,11 +1700,11 @@ function exportToPDF() {
             const get = id => document.getElementById(id)?.value || '—';
             const sexoStr = get('sexo') === 'M' ? 'Masculino' : 'Femenino';
 
-            doc.setFillColor(241,245,249);
+            doc.setFillColor(...PDF_PALETTE.LGREY2);
             doc.roundedRect(margin, y, maxW, 20, 2, 2, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...TEAL);
+            doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...PDF_PALETTE.TEAL);
             doc.text('DATOS DEL PACIENTE', margin+3, y+5.5);
-            doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.DARK);
             doc.text(
                 `F. Nacimiento: ${get('fecha_nacimiento')}   F. Analítica: ${get('fecha_analitica')}   Edad: ${edad} años ${edadM} meses`,
                 margin+3, y+12
@@ -1716,80 +1715,30 @@ function exportToPDF() {
             );
             y += 25;
 
-            // ══ DEFINICIÓN DE SECCIONES ═══════════════════
-            const labels = {
-                superficiecorporal:'Superficie Corporal', imc:'IMC',
-                vpercent:'V% creatinina enz/orina',
-                schwartzneo:'Schwartz neonatal', schwartzlact:'Schwartz lactante',
-                schwartzbedside:'Schwartz Bedside', bokenkamp:'Bökenkamp',
-                ekfccr:'EKFC Cr', ekfccistc:'EKFC CistC',
-                ckidu25cr:'CKiD U25 Cr', ckidu25cistc:'CKiD U25 CistC',
-                ckidu25combinado:'CKiD U25 Combinado',
-                efna:'EF Na', efk:'EF K', efcl:'EF Cl', efau:'EF AU',
-                cacr:'Ca/Cr', mgcr:'Mg/Cr', pcr:'P/Cr', aucr:'AU/Cr',
-                albcr:'Alb/Cr', protcr:'Prot/Cr', citratocr:'Citrato/Cr',
-                oxalatocr:'Oxalato/Cr', nak:'Na/K orina', cacitrato:'Ca/Citrato', rtp:'RTP',
-                uricosuria:'Uricosuria', calciuria:'Calciuria', citraturia:'Citraturia',
-                fosfaturia:'Fosfaturia', magnesuria:'Magnesuria', oxaluria:'Oxaluria',
-                albuminuria:'Albuminuria', proteinuria:'Proteinuria',
-                proteinuriaestimada:'Proteinuria estimada'
-            };
-            const units = {
-                superficiecorporal:'m2', imc:'kg/m2', vpercent:'%',
-                schwartzneo:'ml/min/1.73m2', schwartzlact:'ml/min/1.73m2',
-                schwartzbedside:'ml/min/1.73m2', bokenkamp:'ml/min/1.73m2',
-                ekfccr:'ml/min/1.73m2', ekfccistc:'ml/min/1.73m2',
-                ckidu25cr:'ml/min/1.73m2', ckidu25cistc:'ml/min/1.73m2',
-                ckidu25combinado:'ml/min/1.73m2',
-                efna:'%', efk:'%', efcl:'%', efau:'%',
-                cacr:'mg/mg', mgcr:'mg/mg', pcr:'mg/mg', aucr:'mg/mg',
-                albcr:'mg/g', protcr:'mg/g', citratocr:'mg/mg', oxalatocr:'mg/mg',
-                nak:'', cacitrato:'', rtp:'%',
-                uricosuria:'mg/1.73m2/dia', calciuria:'mg/kg/dia', citraturia:'mg/kg/dia',
-                fosfaturia:'mg/kg/dia', magnesuria:'mg/kg/dia', oxaluria:'mg/1.73m2/dia',
-                albuminuria:'mg/1.73m2/dia', proteinuria:'mg/m2/dia',
-                proteinuriaestimada:'mg/m2/dia'
-            };
-            const secciones = [
-                { titulo:'DATOS GENERALES',
-                  keys:['superficiecorporal','imc'] },
-                { titulo:'FILTRADO GLOMERULAR — eGFR (ml/min/1.73m2)',
-                  keys:['vpercent','schwartzneo','schwartzlact','schwartzbedside','bokenkamp',
-                        'ckidu25cr','ekfccr','ckidu25cistc','ekfccistc','ckidu25combinado'] },
-                { titulo:'EXCRECIÓN FRACCIONAL',
-                  keys:['efna','efk','efcl','efau'] },
-                { titulo:'ÍNDICES URINARIOS — ORINA PUNTUAL',
-                  keys:['cacr','mgcr','pcr','aucr','albcr','protcr',
-                        'citratocr','oxalatocr','nak','cacitrato','rtp'] },
-                { titulo:'EXCRECIÓN EN 24 HORAS',
-                  keys:['uricosuria','calciuria','citraturia','fosfaturia',
-                        'magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] }
-            ];
-
             // ══ FILAS DE RESULTADOS ════════════════════════
             const COL_VAL  = margin + 95;
             const COL_RANG = margin + 135;
             let alt = false;
 
-            secciones.forEach(sec => {
+            SECCIONES.forEach(sec => {
                 const filas = sec.keys.filter(k => R[k] && R[k] !== 0 && !isNaN(R[k]));
                 if (!filas.length) return;
 
                 check(10 + filas.length * 7);
 
                 // Título sección
-                doc.setFillColor(...TEAL);
+                doc.setFillColor(...PDF_PALETTE.TEAL);
                 doc.rect(margin, y, maxW, 7, 'F');
                 doc.setFont('helvetica','bold'); doc.setFontSize(8);
-                doc.setTextColor(...WHITE);
+                doc.setTextColor(...PDF_PALETTE.WHITE);
                 doc.text(sec.titulo, margin+3, y+5);
                 y += 7;
 
                 // Cabecera columnas
-                doc.setFillColor(...LGREY);
+                doc.setFillColor(...PDF_PALETTE.LGREY);
                 doc.rect(margin, y, maxW, 5.5, 'F');
                 doc.setFont('helvetica','bold'); doc.setFontSize(7);
-                doc.setTextColor(...GREY);
+                doc.setTextColor(...PDF_PALETTE.GREY);
                 doc.text('PARÁMETRO', margin+3, y+4);
                 doc.text('VALOR', COL_VAL, y+4);
                 doc.text('RANGO NORMAL', COL_RANG, y+4);
@@ -1799,40 +1748,43 @@ function exportToPDF() {
                 filas.forEach(key => {
                     check(7);
                     const val  = R[key];
-                    const ev   = (key!=='superficiecorporal' && key!=='imc')
+                    const ev   = (key !== 'superficiecorporal' && key !== 'imc')
                                   ? evaluarRango(key, val, edad, edadM)
-                                  : { enRango:true, rangoTexto:'' };
-                    // Construir valorTexto sin caracteres Unicode problemáticos
+                                  : { enRango: true, rangoTexto: '' };
+
+                    const p = PARAMETROS[key];
+                    const label = p?.label || key;
+                    const unit  = p?.unit  || '';
+
                     let valorTexto = parseFloat(val).toFixed(2);
-                    if (units[key]) valorTexto += ' ' + units[key];
-                    // Sin ▲▼: el color rojo ya indica fuera de rango
+                    if (unit) valorTexto += ' ' + unit;
 
                     const rangStr = ev.rangoTexto || '—';
 
-                    if (alt) { doc.setFillColor(248,250,252); doc.rect(margin,y,maxW,6.5,'F'); }
+                    if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, 6.5, 'F'); }
                     alt = !alt;
 
                     // Nombre
                     doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                    doc.setTextColor(...DARK);
-                    doc.text(labels[key]||key, margin+3, y+4.5);
+                    doc.setTextColor(...PDF_PALETTE.DARK);
+                    doc.text(label, margin+3, y+4.5);
 
-                    // Valor (✅ ahora en un solo bloque de texto)
+                    // Valor
                     doc.setFont('helvetica','bold');
                     if (ev.enRango) {
-                        doc.setTextColor(...TEAL);
+                        doc.setTextColor(...PDF_PALETTE.TEAL);
                     } else {
-                        doc.setTextColor(...RED);
+                        doc.setTextColor(...PDF_PALETTE.RED);
                     }
                     doc.text(valorTexto, COL_VAL, y+4.5);
 
                     // Rango
                     doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                    doc.setTextColor(...GREY);
+                    doc.setTextColor(...PDF_PALETTE.GREY);
                     doc.text(rangStr, COL_RANG, y+4.5);
 
                     // Separador
-                    doc.setDrawColor(...LGREY); doc.setLineWidth(0.1);
+                    doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.1);
                     doc.line(margin, y+6.5, pageW-margin, y+6.5);
                     y += 6.5;
                 });
@@ -1841,21 +1793,21 @@ function exportToPDF() {
 
             // ══ BLOQUE DE TEXTO LIBRE ══════════════════════
             const bloques = [
-                { titulo:'SEDIMENTO URINARIO',     texto: get('sedimento_urinario') },
-                { titulo:'OTROS',                  texto: get('comentarionutricional') },
-                { titulo:'ECOGRAFÍA RENAL',        texto: AppState.ecografiaReportText }
+                { titulo: 'SEDIMENTO URINARIO', texto: get('sedimento_urinario') },
+                { titulo: 'OTROS',              texto: get('comentarionutricional') },
+                { titulo: 'ECOGRAFÍA RENAL',    texto: AppState.ecografiaReportText }
             ];
             bloques.forEach(({ titulo, texto }) => {
                 if (!texto || texto === '—') return;
                 check(18);
-                doc.setFillColor(...TEAL);
+                doc.setFillColor(...PDF_PALETTE.TEAL);
                 doc.rect(margin, y, maxW, 7, 'F');
                 doc.setFont('helvetica','bold'); doc.setFontSize(8);
-                doc.setTextColor(...WHITE);
+                doc.setTextColor(...PDF_PALETTE.WHITE);
                 doc.text(titulo, margin+3, y+5);
-                y += 13; // ← antes era 9, insuficiente para la línea base tipográfica
+                y += 13;
                 doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                doc.setTextColor(...DARK);
+                doc.setTextColor(...PDF_PALETTE.DARK);
                 const lineas = doc.splitTextToSize(texto, maxW-4);
                 lineas.forEach(l => {
                     check(6);
@@ -1863,17 +1815,18 @@ function exportToPDF() {
                     y += 5.5;
                 });
                 y += 3;
-         });
+            });
+
             // ══ RESUMEN ALERTAS ════════════════════════════
             if (AppState.valoresFueraRango?.length > 0) {
                 const bH = 10 + AppState.valoresFueraRango.length * 5.5;
                 check(bH);
-                doc.setFillColor(254,242,242);
+                doc.setFillColor(...PDF_PALETTE.RED_BG);
                 doc.roundedRect(margin, y, maxW, bH, 2, 2, 'F');
-                doc.setDrawColor(...RED); doc.setLineWidth(0.4);
+                doc.setDrawColor(...PDF_PALETTE.RED); doc.setLineWidth(0.4);
                 doc.roundedRect(margin, y, maxW, bH, 2, 2, 'S');
                 doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-                doc.setTextColor(...RED);
+                doc.setTextColor(...PDF_PALETTE.RED);
                 doc.text('⚠  VALORES FUERA DE RANGO', margin+4, y+6.5);
                 y += 10;
                 doc.setFont('helvetica','normal'); doc.setFontSize(8);
@@ -1886,10 +1839,10 @@ function exportToPDF() {
             const total = doc.internal.getNumberOfPages();
             for (let i = 1; i <= total; i++) {
                 doc.setPage(i);
-                doc.setDrawColor(...LGREY); doc.setLineWidth(0.3);
+                doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.3);
                 doc.line(margin, pageH-10, pageW-margin, pageH-10);
                 doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                doc.setTextColor(...GREY);
+                doc.setTextColor(...PDF_PALETTE.GREY);
                 doc.text('NefroPed — Calculadora de Función Renal Pediátrica', margin, pageH-6);
                 doc.text(`Página ${i} de ${total}`, pageW-margin, pageH-6, { align:'right' });
             }

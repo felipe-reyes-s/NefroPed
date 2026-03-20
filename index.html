@@ -23,13 +23,14 @@
     
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="NefroPed" />
 
-    <script src="./sweetalert2.js"></script>
-    <script src="./jspdf.js"></script>
-    <script src="./filesaver.js"></script>
-    <script src="./purify.js"></script>
+    <script src="./libs/sweetalert2.js"></script>
+    <script src="./libs/jspdf.js"></script>
+    <script src="./libs/filesaver.js"></script>
+    <script src="./libs/purify.js"></script>
 </head>
 <body>
     <div id="test-mode-banner">
@@ -495,31 +496,32 @@
         </div>
     <footer class="app-footer">
 
-  <!-- Línea 1: Aviso clínico -->
-  <p class="footer-aviso">
-  ⚕️ Herramienta de apoyo para profesionales sanitarios. 
-  No sustituye el juicio clínico facultativo.
-</p>
-  <!-- Línea 2: Créditos -->
-  <p class="footer-creditos">
-    Idea: Ana María Ortega Morales, Pediatra (HUSC) &nbsp;|&nbsp; Desarrollo: Felipe Reyes
-  </p>
-  
-  <!-- Línea 3: Acciones -->
-  <div class="footer-acciones">
-    <a href="mailto:contacto@nefroped.es" class="footer-contact-link">
-        <i class="fas fa-envelope icon-left"></i> Contacto
-    </a>
-    <button id="btn-install-pwa" class="btn btn-install-app hidden">
-        <i class="fas fa-mobile-alt icon-left"></i> Instalar App
-    </button>
-</div>
-  <!-- Línea 4: Copyright -->
- <p class="footer-copyright">
-  Desarrollado para la comunidad de Nefrología Pediátrica · © 2026 NefroPed · Todos los derechos reservados
-</p>
+    <!-- Línea 1: Aviso clínico -->
+    <p class="footer-aviso">
+        ⚕️ Herramienta de apoyo para profesionales sanitarios. 
+        No sustituye el juicio clínico facultativo.
+    </p>
+
+    <!-- Línea 2: Acciones -->
+    <div class="footer-acciones">
+        <a href="mailto:contacto@nefroped.es" class="footer-contact-link">
+            <i class="fas fa-envelope icon-left"></i> Contacto
+        </a>
+        <button id="btn-acerca-de" class="btn-install-app">
+            <i class="fas fa-info-circle icon-left"></i> Acerca de NefroPed
+        </button>
+        <button id="btn-install-pwa" class="btn-install-app hidden">
+            <i class="fas fa-mobile-alt icon-left"></i> Instalar App
+        </button>
+    </div>
+
+    <!-- Línea 3: Copyright -->
+    <p class="footer-copyright">
+        Desarrollado para la comunidad de Nefrología Pediátrica · © 2026 NefroPed · Todos los derechos reservados
+    </p>
 
 </footer>
+
 
     </div>
     

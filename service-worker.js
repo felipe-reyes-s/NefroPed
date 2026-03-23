@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nefroped-v35'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
+const CACHE_NAME = 'nefroped-v60'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
 
 
 const urlsToCache = [
@@ -10,6 +10,9 @@ const urlsToCache = [
   './libs/jspdf.js',
   './libs/filesaver.js',
   './libs/purify.js',
+  './constants.js',
+  './math-engine.js',
+  './pdf-export.js',
   
   // Archivos de la tipografía Geist
   './fonts/geist-v4-latin-regular.woff2',
@@ -132,27 +135,3 @@ if (url.hostname.includes('goatcounter') || url.hostname.includes('gc.zgo.at')) 
     })
   );
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

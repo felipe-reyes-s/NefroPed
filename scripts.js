@@ -1,3 +1,7 @@
+import { parseFecha, evaluarRango, performMedicalCalculations, obryckiLMS, zScoreToPercentile } from './math-engine.js';
+import { PARAMETROS, SECCIONES, TAB_FIELDS } from './constants.js';
+import { exportToPDF } from './pdf-export.js';
+
 // ======================================================================================
 // 1. REGISTRO DEL SERVICE WORKER CON GESTIÓN AVANZADA DE ACTUALIZACIONES (PWA)
 // ======================================================================================
@@ -73,76 +77,15 @@ const AppState = {
     ecografiaReportText: ""
 };
 
-const PDF_PALETTE = {
-    TEAL:   [8,   145, 178],
-    RED:    [220,  38,  38],
-    DARK:   [30,   41,  59],
-    GREY:   [100, 116, 139],
-    LGREY:  [226, 232, 240],
-    LGREY2: [241, 245, 249],
-    LGREY3: [248, 250, 252],
-    RED_BG: [254, 242, 242],
-    WHITE:  [255, 255, 255],
-};
-// ─── ÚNICA FUENTE DE VERDAD DE PARÁMETROS ───────────────────────────────────
-const PARAMETROS = {
-    superficiecorporal:  { label: 'Superficie Corporal',    unit: 'm²'            },
-    imc:                 { label: 'IMC',                    unit: 'kg/m²'         },
-    vpercent:            { label: 'V%',                     unit: '%'             },
-    schwartz_neo:        { label: 'eGFR Schwartz neonatal', unit: 'ml/min/1.73m²' },
-    schwartz_lact:       { label: 'eGFR Schwartz lactante', unit: 'ml/min/1.73m²' },
-    schwartz_bedside:    { label: 'eGFR Schwartz Bedside',  unit: 'ml/min/1.73m²' },
-    bokenkamp:           { label: 'eGFR Böckenkamp',        unit: 'ml/min/1.73m²' },
-    ckid_u25_cr:         { label: 'eGFR CKiD U25 Cr',       unit: 'ml/min/1.73m²' },
-    ekfc_cr:             { label: 'eGFR EKFC Cr',           unit: 'ml/min/1.73m²' },
-    ckid_u25_cistc:      { label: 'eGFR CKiD U25 CistC',   unit: 'ml/min/1.73m²' },
-    ekfc_cistc:          { label: 'eGFR EKFC CystC',        unit: 'ml/min/1.73m²' },
-    ckid_u25_combinado:  { label: 'eGFR Combinado',         unit: 'ml/min/1.73m²' },
-    efna:                { label: 'EF Na',                  unit: ''             },
-    efau:                { label: 'EF AU',                  unit: ''             },
-    efk:                 { label: 'EF K',                   unit: ''             },
-    efcl:                { label: 'EF Cl',                  unit: ''             },
-    cacr:                { label: 'Ca/Cr',                  unit: 'mg/mg'         },
-    mgcr:                { label: 'Mg/Cr',                  unit: 'mg/mg'         },
-    pcr:                 { label: 'P/Cr',                   unit: 'mg/mg'         },
-    rtp:                 { label: 'RTP',                    unit: '%'             },
-    aucr:                { label: 'AU/Cr',                  unit: 'mg/mg'         },
-    oxalatocr:           { label: 'Oxalato/Cr',             unit: 'mg/mg'         },
-    albcr:               { label: 'Alb/Cr',                 unit: 'mg/g'          },
-    protcr:              { label: 'Prot/Cr',                unit: 'mg/g'          },
-    citratocr:           { label: 'Citrato/Cr',             unit: 'mg/mg'         },
-    cacitrato:           { label: 'Ca/Citrato',             unit: ''              },
-    nak:                 { label: 'Na/K orina',             unit: ''              },
-    uricosuria:          { label: 'Uricosuria',             unit: 'mg/1.73m²/día' },
-    calciuria:           { label: 'Calciuria',              unit: 'mg/kg/día'     },
-    citraturia:          { label: 'Citraturia',             unit: 'mg/kg/día'     },
-    fosfaturia:          { label: 'Fosfaturia',             unit: 'mg/kg/día'     },
-    oxaluria:            { label: 'Oxaluria',               unit: 'mg/1.73m²/día' },
-    magnesuria:          { label: 'Magnesuria',             unit: 'mg/kg/día'     },
-    albuminuria:         { label: 'Albuminuria',            unit: 'mg/1.73m²/día' },
-    proteinuria:         { label: 'Proteinuria',            unit: 'mg/m²/día'     },
-    proteinuriaestimada: { label: 'Proteinuria estimada',   unit: 'mg/m²/día'     },
-};
-
-const SECCIONES = [
-    { titulo: 'Datos Generales',
-      keys: ['superficiecorporal','imc'] },
-    { titulo: 'Filtrado Glomerular (eGFR) ml/min/1.73m²',
-      keys: ['vpercent','schwartz_neo','schwartz_lact','schwartz_bedside','bokenkamp','ckid_u25_cr','ekfc_cr','ckid_u25_cistc','ekfc_cistc','ckid_u25_combinado'] },
-    { titulo: 'Excreción Fraccional',
-      keys: ['efna','efau','efk','efcl'] },
-    { titulo: 'Índices Urinarios (Orina Puntual)',
-      keys: ['cacr','mgcr','pcr','rtp','aucr','albcr','oxalatocr','protcr','citratocr','nak','cacitrato'] },
-    { titulo: 'Excreción en 24h',
-      keys: ['uricosuria','calciuria','citraturia','fosfaturia','magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] },
-];
+const SESSION_STORAGE_KEY = 'calcRenalDataTemporales';
+const THEME_STORAGE_KEY = 'themePref';
 // ────────────────────────────────────────────────────────────────────────────
 
 
 document.addEventListener('DOMContentLoaded', function() {
     if (location.hostname === 'localhost') console.log('🚀 Dev mode');
-    
-    fieldIds = Array.from(document.querySelectorAll('#clinicalForm input[id], #clinicalForm select[id]'))
+    setupAutoSave();
+        fieldIds = Array.from(document.querySelectorAll('#clinicalForm input[id], #clinicalForm select[id]'))
         .filter(input => input.id !== 'edad_calculada' && input.type !== 'checkbox' && input.type !== 'radio')
         .map(input => input.id);    
     camposParaContador = [...fieldIds, 'sedimento_urinario', 'comentario_nutricional', 'serie_blanca', 'serie_plaquetaria', 'coagulacion'];
@@ -162,8 +105,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupSecretTap();
     setupThemeToggle(); 
-    setupAutoSave();
     posicionarDropdownExport(); 
+
+    // Accesibilidad: Ocultar todos los iconos decorativos a los lectores de pantalla
+    document.querySelectorAll('i.fas, i.far').forEach(icon => icon.setAttribute('aria-hidden', 'true'));
 });
 
 // ===============================================
@@ -268,10 +213,8 @@ function setupSecretTap() {
         if (testTapCount >= 5) {
             if (document.body.classList.contains('modo-test')) {
                 desactivarModoTest();
-                Swal.fire({ icon: 'info', title: 'Modo TEST desactivado', timer: 1200, showConfirmButton: false });
             } else {
                 activarModoTest();
-                Swal.fire({ icon: 'success', title: '¡Modo TEST activado!', timer: 1200, showConfirmButton: false });
             }
             testTapCount = 0;
             if (tapTimer) clearTimeout(tapTimer);
@@ -294,76 +237,63 @@ function setupSecretTap() {
 // GESTIÓN DEL MODO OSCURO (FOOTER)
 // ===============================================
 function setupThemeToggle() {
-    const toggleBtn = document.getElementById('theme-toggle-footer');
-    const themeText = document.getElementById('theme-text');
-    const themeIcon = toggleBtn ? toggleBtn.querySelector('i') : null;
-
-    function updateUI(theme) {
-        if (theme === 'dark') {
-            if (themeIcon) themeIcon.className = 'fas fa-sun';
-            if (themeText) themeText.textContent = 'Modo Claro';
-        } else {
-            if (themeIcon) themeIcon.className = 'fas fa-moon';
-            if (themeText) themeText.textContent = 'Modo Oscuro';
-        }
-    }
-
-    const savedTheme = localStorage.getItem('themePref');
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
     
     // Aplicar tema inicial SIEMPRE con data-color-scheme
     document.documentElement.setAttribute('data-color-scheme', currentTheme);
-    updateUI(currentTheme);
 
-    // Listener footer
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
-            const current = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-color-scheme', current);
-            localStorage.setItem('themePref', current);
-            updateUI(current);
-        });
-    }
-
-    // ✅ Listener header — dentro de setupThemeToggle para acceder a updateUI
+    // Listener del header
     const headerBtn = document.getElementById('theme-toggle-header');
     if (headerBtn) {
         headerBtn.addEventListener('click', () => {
             const current = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-color-scheme', current);
-            localStorage.setItem('themePref', current);
-            updateUI(current);
+            localStorage.setItem(THEME_STORAGE_KEY, current);
         });
     }
 }
 
-
 function setupAutoSave() {
-    const savedData = sessionStorage.getItem('calcRenalDataTemporales');
+    // --- Restaurar datos al cargar la página ---
+    const savedData = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (savedData) {
         try {
             const data = JSON.parse(savedData);
             Object.keys(data).forEach(key => {
                 const input = document.getElementById(key);
-                if (input && data[key] !== null && data[key] !== '') input.value = data[key];
+                // Restaura el valor si el input existe y el dato no es nulo/vacío
+                if (input && data[key] !== null && data[key] !== '') {
+                    input.value = data[key];
+                }
             });
-            calcularEdad();
+            calcularEdad(); // Vuelve a calcular la edad con las fechas restauradas
         } catch (e) {
-            console.error('Error al recuperar datos temporales');
+            console.error('Error al parsear o restaurar los datos de la sesión.', e);
+            sessionStorage.removeItem(SESSION_STORAGE_KEY); // Limpia datos corruptos
         }
     }
 
-    document.getElementById('clinicalForm').addEventListener('input', () => {
-        const data = getFormData();
-        data.sedimento_urinario = document.getElementById('sedimento_urinario')?.value || '';
-        data.comentario_nutricional = document.getElementById('comentario_nutricional')?.value || '';
-        data.serie_blanca = document.getElementById('serie_blanca')?.value || '';
-        data.serie_plaquetaria = document.getElementById('serie_plaquetaria')?.value || '';
-        data.coagulacion = document.getElementById('coagulacion')?.value || '';
-        sessionStorage.setItem('calcRenalDataTemporales', JSON.stringify(data));
-    });
+    // --- Guardar datos en cada cambio dentro del formulario ---
+    const form = document.getElementById('clinicalForm');
+    if (form) {
+        form.addEventListener('input', () => {
+            const data = getFormData(); // Usa la función existente para recoger datos numéricos
+            
+            // Añade manualmente los campos de texto largo que no están en getFormData
+            data.sedimento_urinario = document.getElementById('sedimento_urinario')?.value || '';
+            data.comentario_nutricional = document.getElementById('comentario_nutricional')?.value || '';
+            data.serie_blanca = document.getElementById('serie_blanca')?.value || '';
+            data.serie_plaquetaria = document.getElementById('serie_plaquetaria')?.value || '';
+            data.coagulacion = document.getElementById('coagulacion')?.value || '';
+            
+            // Guarda todo en sessionStorage usando la constante
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+        });
+    }
 }
+
 
 // ===============================================
 // 5. FUNCIONES DE UI, FECHAS Y EVENTOS
@@ -384,14 +314,6 @@ return String(str)
 .replace(/>/g, '&gt;')
 .replace(/"/g, '&quot;')
 .replace(/'/g, '&#039;');
-}
-function parseFecha(str) {
-    if (!str || !str.includes('/')) return null;
-    const [dia, mes, anio] = str.split('/').map(Number);
-    if (!dia || !mes || !anio || anio < 1900) return null;
-    const fecha = new Date(anio, mes - 1, dia);
-    if (fecha.getDate() !== dia || fecha.getMonth() !== mes - 1 || fecha.getFullYear() !== anio) return null;
-    return fecha;
 }
 
 function calcularEdad() {
@@ -473,36 +395,27 @@ function configurarEventosFechas() {
 
 
 function configureNumericValidation() {
-    const camposDecimales = [
-        'peso_kg', 'talla_cm', 'urea_mg_dl', 'creatinina_enz_mg_dl', 'cistatina_c_mg_l', 'au_plasma_mg_dl', 
-        'na_plasma_meq_l', 'k_plasma_meq_l', 'cl_plasma_meq_l', 'fosfatasa_alcalina_u_l', 
-        'ca_plasma_mg_dl', 'p_plasma_mg_dl', 'mg_plasma_mg_dl', 'pth_pg_ml', 'vitamina_d_ng_ml',
-        'ph_plasma', 'pco2_mmhg', 'hco3_mmol_l', 'exceso_bases_mmol_l',
-        'densidad', 'ph_orina', 'au_orina_mg_dl', 'na_orina_meq_l', 'k_orina_meq_l', 
-        'cl_orina_meq_l', 'osmolalidad_orina_mosm_kg', 'ca_orina_mg_dl', 'fosforo_orina_mg_dl', 
-        'magnesio_orina_mg_dl', 'albumina_orina_mg_dl', 'creatinina_orina_mg_dl', 
-        'proteinas_orina_mg_dl', 'citrato_orina_mg_dl', 'oxalato_orina_mg_dl',
-        'au_24h_mg', 'ca_24h_mg', 'mg_24h_mg', 'p_24h_mg', 'citrato_24h_mg', 
-        'oxalato_24h_mg', 'albumina_24h_mg', 'proteinas_24h_mg',
-        'hb_g_l', 'ferritina_ng_ml', 'ist_percent'
-    ];
+    // Campos excluidos: fechas y ecografía tienen su propio manejo
+    const NO_DECIMALES = ['fecha_nacimiento', 'fecha_analitica', 'rinon_izquierdo_mm', 'rinon_derecho_mm'];
+    const camposDecimales = Object.values(TAB_FIELDS).flat()
+        .filter(id => !NO_DECIMALES.includes(id));
 
     camposDecimales.forEach(fieldId => {
         const input = document.getElementById(fieldId);
         if (input) {
-            input.type = 'text';  // ✅ Mantener para validación personalizada
-            input.setAttribute('inputmode', 'decimal');  // ✅ OK
-            input.setAttribute('pattern', '[0-9,.-]*');  // ✅ Añadir patrón para iOS
+            input.type = 'text';
+            input.setAttribute('inputmode', 'decimal');
+            input.setAttribute('pattern', '[0-9.,\\-]*');
             input.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/\./g, ',');
                 value = (fieldId === 'exceso_bases_mmol_l') ? value.replace(/[^0-9,-]/g, '') : value.replace(/[^0-9,]/g, '');
-                
+
                 const parts = value.split(',');
                 if (parts.length > 2) value = parts[0] + ',' + parts.slice(1).join('');
                 if (parts.length === 2 && parts[1].length > 2) value = parts[0] + ',' + parts[1].substring(0, 2);
-                
+
                 if (fieldId !== 'exceso_bases_mmol_l' && value.includes('-')) value = value.replace('-', '');
-                
+
                 e.target.value = value;
             });
             input.addEventListener('blur', function(e) {
@@ -542,6 +455,21 @@ function setupTabNavigation() {
                 }
             }
         });
+
+        // Evento para accesibilidad por teclado (Flechas) según WCAG
+        btn.addEventListener('keydown', function(e) {
+            let nextIndex = null;
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                nextIndex = (i + 1) % allBtns.length;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                nextIndex = (i - 1 + allBtns.length) % allBtns.length;
+            }
+            if (nextIndex !== null) {
+                e.preventDefault();
+                allBtns[nextIndex].focus();
+                allBtns[nextIndex].click();
+            }
+        });
     });
 }
 
@@ -552,6 +480,7 @@ function switchTab(tabId, buttonElement) {
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
         btn.setAttribute('aria-selected', 'false'); // NUEVO: Apagar ARIA
+        btn.setAttribute('tabindex', '-1'); // NUEVO: Roving tabindex (inactivas)
     });
     
     const targetTab = document.getElementById(tabId);
@@ -561,29 +490,17 @@ function switchTab(tabId, buttonElement) {
     if (buttonElement) {
         buttonElement.classList.add('active');
         buttonElement.setAttribute('aria-selected', 'true'); // NUEVO: Encender ARIA
+        buttonElement.setAttribute('tabindex', '0'); // NUEVO: Roving tabindex (activa)
     }
 }
 
 function actualizarMarcadoresEnTiempoReal() {
     if (!AppState.primeraValidacion) return;
-    
-    // Lista de todas las pestañas y sus campos asociados
-    const secciones = {
-        'datos-basicos-tab': ['fecha_nacimiento', 'fecha_analitica', 'peso_kg', 'talla_cm'],
-        'bioquimica-tab': ['urea_mg_dl', 'creatinina_enz_mg_dl', 'au_plasma_mg_dl', 'na_plasma_meq_l', 'k_plasma_meq_l', 'cl_plasma_meq_l', 'fosfatasa_alcalina_u_l', 'ca_plasma_mg_dl', 'p_plasma_mg_dl', 'mg_plasma_mg_dl', 'pth_pg_ml', 'vitamina_d_ng_ml', 'cistatina_c_mg_l'],
-        'gasometria-tab': ['ph_plasma', 'pco2_mmhg', 'hco3_mmol_l', 'exceso_bases_mmol_l'],
-        'orina-puntual-tab': ['densidad', 'ph_orina', 'au_orina_mg_dl', 'na_orina_meq_l', 'k_orina_meq_l', 'cl_orina_meq_l', 'osmolalidad_orina_mosm_kg', 'ca_orina_mg_dl', 'fosforo_orina_mg_dl', 'magnesio_orina_mg_dl', 'albumina_orina_mg_dl', 'creatinina_orina_mg_dl', 'proteinas_orina_mg_dl', 'citrato_orina_mg_dl', 'oxalato_orina_mg_dl'],
-        'hematologia-tab': ['hb_g_l', 'ferritina_ng_ml', 'ist_percent'],
-        'orina-24h-tab': ['au_24h_mg', 'ca_24h_mg', 'p_24h_mg', 'mg_24h_mg', 'albumina_24h_mg', 'proteinas_24h_mg', 'citrato_24h_mg', 'oxalato_24h_mg'],
-        'ecografia-tab': ['rinon_izquierdo_mm', 'rinon_derecho_mm']
-    };
 
-    Object.keys(secciones).forEach(tabId => {
+    Object.keys(TAB_FIELDS).forEach(tabId => {
         let tieneError = false;
-        secciones[tabId].forEach(campoId => {
+        TAB_FIELDS[tabId].forEach(campoId => {
             const campo = document.getElementById(campoId);
-            
-            // Si el campo está bloqueado (ej. monoreno), NO cuenta como error
             if (campo && !campo.disabled) {
                 if (!campo.value || campo.value.trim() === '') {
                     tieneError = true;
@@ -592,12 +509,9 @@ function actualizarMarcadoresEnTiempoReal() {
                     campo.classList.remove('campo-error');
                 }
             } else if (campo && campo.disabled) {
-                // Limpiar error si se acaba de bloquear
                 campo.classList.remove('campo-error');
             }
         });
-        
-        // Aplicar o quitar la clase tab-error a la pestaña
         const tab = document.getElementById(tabId);
         if (tab) tab.classList.toggle('tab-error', tieneError);
     });
@@ -634,7 +548,7 @@ function setupButtons() {
     if (exportWordButton) exportWordButton.addEventListener('click', exportToWord);
     
     const exportPDFButton = document.getElementById('exportPDFButton');
-    if (exportPDFButton) exportPDFButton.addEventListener('click', exportToPDF);
+    if (exportPDFButton) exportPDFButton.addEventListener('click', () => exportToPDF(AppState, getFormData()));
     
     const printButton = document.getElementById('printButton');
     if (printButton) printButton.addEventListener('click', printReport);
@@ -665,7 +579,7 @@ function setupButtons() {
                     </p>
                     <hr style="border-color:var(--color-border); margin:12px 0">
                     <p style="text-align:center; font-size:11px; color:var(--color-text-secondary)">
-                        v2.0 · 2026 · Uso exclusivo para profesionales sanitarios
+                        v1.0 · 2026 · Uso exclusivo para profesionales sanitarios
                     </p>
                 `,
                 confirmButtonText: 'Cerrar',
@@ -713,7 +627,6 @@ function clearFormSilent() {
     if(reportContent) reportContent.textContent = '';
      
     AppState.calculatedResults = {}; 
-    reportText = ''; 
     AppState.primeraValidacion = false;
     AppState.reportPlainText = '';
     AppState.ecografiaReportText = '';
@@ -722,10 +635,8 @@ function clearFormSilent() {
     
     updateFieldCounter();
     switchTab('datos-basicos', document.querySelector('[data-tab="datos-basicos"]'));
-    sessionStorage.removeItem('calcRenalDataTemporales');
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
 }
-
-function clearForm() { confirmarLimpiarFormulario(); }
 
 function loadSampleData() {
     // 1. Fechas dinámicas (Paciente siempre tiene 12 años exactos hoy)
@@ -821,63 +732,6 @@ function updateFieldCounter() {
 // ===============================================
 // 6. LÓGICA DE CÁLCULO Y EVALUACIÓN
 // ===============================================
-function evaluarRango(parametro, valor, edad, edadMeses) {
-    if (valor === null || valor === undefined || valor === 0) return { enRango: true };
-    const edadTotalMeses = (edad * 12) + edadMeses;
-    let rangoMin, rangoMax, rangoTexto = '', esRangoValido = true;
-    
-    switch (parametro) {
-        case 'vpercent': if (edad >= 1) { rangoMax = 0.81; rangoTexto = '<0.81%'; return { enRango: valor <= rangoMax, tipo: valor > rangoMax ? 'alto' : 'normal', rangoTexto }; } break;
-        
-        // Fórmulas para > 2 años (KDIGO normal)
-        case 'ckid_u25_cr': case 'ckid_u25_cistc': case 'ckid_u25_combinado': 
-        case 'schwartz_bedside': case 'ekfc_cr': case 'ekfc_cistc':
-            rangoMin = 90; rangoTexto = '>90ml/min/1.73m²'; return { enRango: valor >= rangoMin, tipo: valor < rangoMin ? 'bajo' : 'normal', rangoTexto };
-            
-        // Fórmulas para Lactantes y Neonatos (Ajuste dinámico por mes)
-        case 'schwartz_neo': case 'schwartz_lact': case 'bokenkamp':{
-            const limites_minimos = {
-                1: 35, 2: 40, 3: 45, 4: 50, 5: 55, 6: 60, 7: 63, 8: 65, 9: 68, 10: 70, 
-                11: 73, 12: 75, 13: 76, 14: 77, 15: 78, 16: 79, 17: 81, 18: 82, 19: 83, 
-                20: 84, 21: 85, 22: 87, 23: 88, 24: 90
-            };
-            const mesUsado = edadTotalMeses <= 0 ? 1 : (edadTotalMeses > 24 ? 24 : Math.floor(edadTotalMeses));
-            rangoMin = limites_minimos[mesUsado] || 90;
-            rangoTexto = `>${rangoMin}ml/min/1.73m² (Normal para ${mesUsado} meses)`;
-            return { enRango: valor >= rangoMin, tipo: valor < rangoMin ? 'bajo' : 'normal', rangoTexto };
-        }
-        case 'efau': if (edad >= 1 && edad < 5) { rangoMin = 11; rangoMax = 17; rangoTexto = '11–17'; } else if (edad >= 5) { rangoMin = 4.45; rangoMax = 9.99; rangoTexto = '4.45–9.99'; } else esRangoValido = false; break;
-        case 'efna': rangoMin = 0.42; rangoMax = 0.84; rangoTexto = '0.42–0.84'; break;
-        case 'efk': rangoMin = 5.19; rangoMax = 11.67; rangoTexto = '5.19–11.67'; break;
-        case 'efcl': rangoMin = 0.57; rangoMax = 1.11; rangoTexto = '0.57–1.11'; break;
-        case 'cacr': if (edadTotalMeses < 6) { rangoMax = 0.8; rangoTexto = '<0.8mg/mg'; } else if (edadTotalMeses < 12) { rangoMax = 0.6; rangoTexto = '<0.6mg/mg'; } else if (edad >= 1 && edad < 2) { rangoMax = 0.5; rangoTexto = '<0.5mg/mg'; } else if (edad >= 2 && edad < 4) { rangoMax = 0.28; rangoTexto = '<0.28mg/mg'; } else if (edad >= 4) { rangoMax = 0.20; rangoTexto = '<0.20mg/mg'; } return { enRango: valor <= rangoMax, tipo: valor > rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'rtp': if (edad >= 1 && edad < 3) { rangoMin = 81.18; rangoMax = 90.08; rangoTexto = '81.18–90.08%'; } else if (edad >= 3 && edad < 5) { rangoMin = 86.43; rangoMax = 95.76; rangoTexto = '86.43–95.76%'; } else if (edad >= 5) { rangoMin = 90.26; rangoMax = 94.86; rangoTexto = '90.26–94.86%'; } else esRangoValido = false; break;
-        case 'mgcr': if (edad >= 1 && edad < 2) { rangoMin = 0.09; rangoMax = 0.37; rangoTexto = '0.09–0.37mg/mg'; } else if (edad >= 2 && edad < 3) { rangoMin = 0.07; rangoMax = 0.34; rangoTexto = '0.07–0.34mg/mg'; } else if (edad >= 3 && edad < 5) { rangoMin = 0.07; rangoMax = 0.29; rangoTexto = '0.07–0.29mg/mg'; } else if (edad >= 5 && edad < 7) { rangoMin = 0.06; rangoMax = 0.21; rangoTexto = '0.06–0.21mg/mg'; } else if (edad >= 7 && edad < 10) { rangoMin = 0.05; rangoMax = 0.18; rangoTexto = '0.05–0.18mg/mg'; } else if (edad >= 10 && edad < 14) { rangoMin = 0.05; rangoMax = 0.15; rangoTexto = '0.05–0.15mg/mg'; } else esRangoValido = false; break;
-        case 'pcr': if (edad >= 0 && edad < 3) { rangoMin = 0.8; rangoMax = 2; rangoTexto = '0.8–2mg/mg'; } else if (edad >= 3 && edad < 5) { rangoMin = 0.33; rangoMax = 2.17; rangoTexto = '0.33–2.17mg/mg'; } else if (edad >= 5 && edad < 7) { rangoMin = 0.33; rangoMax = 1.49; rangoTexto = '0.33–1.49mg/mg'; } else if (edad >= 7 && edad < 10) { rangoMin = 0.32; rangoMax = 0.97; rangoTexto = '0.32–0.97mg/mg'; } else if (edad >= 10 && edad < 14) { rangoMin = 0.22; rangoMax = 0.86; rangoTexto = '0.22–0.86mg/mg'; } else esRangoValido = false; break;
-        case 'aucr': if (edad >= 3 && edad < 5) { rangoMin = 0.66; rangoMax = 1.1; rangoTexto = '0.66–1.1mg/mg'; } else if (edad >= 5 && edad < 7) { rangoMin = 0.5; rangoMax = 0.92; rangoTexto = '0.5–0.92mg/mg'; } else if (edad >= 7 && edad < 9) { rangoMin = 0.44; rangoMax = 0.8; rangoTexto = '0.44–0.8mg/mg'; } else if (edad >= 9 && edad < 11) { rangoMin = 0.4; rangoMax = 0.72; rangoTexto = '0.4–0.72mg/mg'; } else if (edad >= 11 && edad < 13) { rangoMin = 0.35; rangoMax = 0.61; rangoTexto = '0.35–0.61mg/mg'; } else if (edad >= 13 && edad < 14) { rangoMin = 0.28; rangoMax = 0.5; rangoTexto = '0.28–0.5mg/mg'; } else esRangoValido = false; break;
-        case 'citratocr': rangoMin = 0.4; rangoTexto = '>0.4mg/mg'; return { enRango: valor > rangoMin, tipo: valor <= rangoMin ? 'bajo' : 'normal', rangoTexto };
-        case 'cacitrato': rangoMax = 0.3; rangoTexto = '<0.3'; return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'oxalatocr': if (edadTotalMeses < 6) { rangoMax = 0.29; rangoTexto = '<0.29mg/mg'; } else if (edadTotalMeses >= 6 && edad < 2) { rangoMax = 0.20; rangoTexto = '<0.20mg/mg'; } else if (edad >= 2 && edad < 6) { rangoMax = 0.22; rangoTexto = '<0.22mg/mg'; } else if (edad >= 6 && edad < 13) { rangoMax = 0.06; rangoTexto = '<0.06mg/mg'; } else if (edad >= 13) { rangoMax = 0.03; rangoTexto = '<0.03mg/mg'; } return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'albcr': rangoMax = 30; rangoTexto = '<30mg/g'; return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'protcr': if (edad < 2) { rangoMax = 500; rangoTexto = '<500mg/g'; } else { rangoMax = 200; rangoTexto = '<200mg/g'; } return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'nak': rangoMax = 2.5; rangoTexto = '<2.5'; return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'uricosuria': rangoMin = 373; rangoMax = 667; rangoTexto = '373–667mg/1.73m²/día'; break;
-        case 'calciuria': rangoMax = 4; rangoTexto = '<4mg/kg/día'; return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'citraturia': rangoMin = 5.57; rangoMax = 13.67; rangoTexto = '5.57–13.67mg/kg/día'; break;
-        case 'fosfaturia': rangoMin = 7.8; rangoMax = 17; rangoTexto = '7.8–17mg/kg/día'; break;
-        case 'oxaluria': rangoMin = 23.2; rangoMax = 50.6; rangoTexto = '23.2–50.6mg/1.73m²/día'; break;
-        case 'magnesuria': rangoMin = 1; rangoMax = 3.3; rangoTexto = '1–3.3mg/kg/día'; break;
-        case 'albuminuria': rangoMax = 30; rangoTexto = '<30mg/1.73m²/día'; return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        case 'proteinuria': case 'proteinuriaestimada': rangoMax = 100; rangoTexto = '<100mg/m²/día'; return { enRango: valor < rangoMax, tipo: valor >= rangoMax ? 'alto' : 'normal', rangoTexto };
-        default: return { enRango: true };
-    }
-    
-    if (!esRangoValido) return { enRango: true };
-    let tipo = 'normal'; let enRango = true;
-    if (rangoMin !== undefined && valor < rangoMin) { enRango = false; tipo = 'bajo'; } 
-    else if (rangoMax !== undefined && valor > rangoMax) { enRango = false; tipo = 'alto'; }
-    return { enRango, tipo, rangoTexto };
-}
 
 function getFormData() {
     const data = {};
@@ -972,141 +826,6 @@ function calculateResults() {
 // =========================================================
 // EL MATEMÁTICO: Función "pura" con las nuevas fórmulas eFG integradas
 // =========================================================
-function performMedicalCalculations(data) {
-    const superficieCorporal = Math.sqrt(data.peso_kg * data.talla_cm / 3600);
-    const imc = data.peso_kg > 0 && data.talla_cm > 0 ? data.peso_kg / Math.pow(data.talla_cm / 100, 2) : 0;
-    const edadExacta = AppState.edadEnAños + (AppState.edadEnMeses / 12);
-    const talla_m = data.talla_cm / 100;
-
-    // --- 1. NUEVO MOTOR DE FILTRADO GLOMERULAR (eFG) PEDIÁTRICO ---
-    const talla = data.talla_cm;
-    const cr = data.creatinina_enz_mg_dl;
-    const cistC = data.cistatina_c_mg_l;
-    const sexo = data.sexo;
-
-    let diasVida = 0;
-    const fechaNacObj  = parseFecha(data.fecha_nacimiento);
-    const fechaAnalObj = parseFecha(data.fecha_analitica);
-    if (fechaNacObj && fechaAnalObj) {
-        diasVida = Math.floor((fechaAnalObj.getTime() - fechaNacObj.getTime()) / (1000 * 3600 * 24));
-    }
-
-
-    let schwartz_neo = 0, schwartz_lact = 0, schwartz_bedside = 0, bokenkamp = 0, ekfc_cr = 0, ekfc_cistc = 0;
-    let ckid_u25_cr = 0, ckid_u25_cistc = 0, ckid_u25_combinado = 0;
-
-    // GRUPO 1: NEONATOS (0 a 28 días)
-    if (diasVida >= 0 && diasVida <= 28) {
-        if (cr && talla) schwartz_neo = 0.31 * (talla / cr);
-        if (cistC) bokenkamp = 100 * (0.83 / cistC);
-    }
-   // GRUPO 2: LACTANTES (29 a 364 días)
-    else if (diasVida >= 29 && diasVida < 365) {
-        if (cr && talla) schwartz_lact = 0.34 * (talla / cr);
-        if (cistC) bokenkamp = 100 * (0.83 / cistC);
-        
-        // --- Aplicación de CKiD U25 en >1 mes (Usando la K fijada a 1 año de edad) ---
-        let k_cr_lactante = (sexo === 'M') ? 39.0 * Math.pow(1.008, 1 - 12) : 36.1 * Math.pow(1.008, 1 - 12);
-        if (cr > 0 && talla_m > 0) ckid_u25_cr = k_cr_lactante * (talla_m / cr);
-
-        let k_cist_lactante = (sexo === 'M') ? 87.2 * Math.pow(1.011, 1 - 15) : 79.9 * Math.pow(1.004, 1 - 12);
-        if (cistC > 0) ckid_u25_cistc = k_cist_lactante * (1 / cistC);
-
-        if (ckid_u25_cr > 0 && ckid_u25_cistc > 0) ckid_u25_combinado = (ckid_u25_cr + ckid_u25_cistc) / 2;
-    }
-    // GRUPO 3 y 4: MAYORES DE 1 AÑO (Hasta 25 años)
-    else if (diasVida >= 365 && edadExacta <= 25) {
-        // A. Schwartz Bedside
-        if (cr && talla && edadExacta < 16) schwartz_bedside = 0.413 * (talla / cr);
-
-        // B. CKiD U25
-        let k_cr = 0;
-        if (edadExacta >= 1 && edadExacta < 12) k_cr = (sexo === 'M') ? 39.0 * Math.pow(1.008, edadExacta - 12) : 36.1 * Math.pow(1.008, edadExacta - 12);
-        else if (edadExacta >= 12 && edadExacta < 18) k_cr = (sexo === 'M') ? 39.0 * Math.pow(1.045, edadExacta - 12) : 36.1 * Math.pow(1.023, edadExacta - 12);
-        else if (edadExacta >= 18) k_cr = (sexo === 'M') ? 50.8 : 41.4;
-
-        if (k_cr > 0 && cr > 0 && talla_m > 0) ckid_u25_cr = k_cr * (talla_m / cr);
-
-        let k_cist = 0;
-        if (edadExacta >= 1 && edadExacta < 12) k_cist = (sexo === 'M') ? 87.2 * Math.pow(1.011, edadExacta - 15) : 79.9 * Math.pow(1.004, edadExacta - 12);
-        else if (edadExacta >= 12 && edadExacta < 15) k_cist = (sexo === 'M') ? 87.2 * Math.pow(1.011, edadExacta - 15) : 79.9 * Math.pow(0.974, edadExacta - 12);
-        else if (edadExacta >= 15 && edadExacta < 18) k_cist = (sexo === 'M') ? 87.2 * Math.pow(0.960, edadExacta - 15) : 79.9 * Math.pow(0.974, edadExacta - 12);
-        else if (edadExacta >= 18) k_cist = (sexo === 'M') ? 77.1 : 68.3;
-
-        if (k_cist > 0 && cistC > 0) ckid_u25_cistc = k_cist * (1 / cistC);
-        if (ckid_u25_cr > 0 && ckid_u25_cistc > 0) ckid_u25_combinado = (ckid_u25_cr + ckid_u25_cistc) / 2;
-
-        // C. EKFC (European Kidney Function Consortium)
-        if (cr && edadExacta >= 2) {
-            let Q_cr = 0;
-            if (edadExacta <= 25) {
-                let lnQ_umol = 0;
-                if (sexo === 'M' || sexo === 'Hombre') {
-                    // Polinomio de crecimiento para Hombres (2 a 25 años)
-                    lnQ_umol = 3.200 + (0.259 * edadExacta) - (0.543 * Math.log(edadExacta)) - (0.00763 * Math.pow(edadExacta, 2)) + (0.0000790 * Math.pow(edadExacta, 3));
-                } else {
-                    // Polinomio de crecimiento para Mujeres (2 a 25 años)
-                    lnQ_umol = 3.080 + (0.177 * edadExacta) - (0.223 * Math.log(edadExacta)) - (0.00596 * Math.pow(edadExacta, 2)) + (0.0000686 * Math.pow(edadExacta, 3));
-                }
-                Q_cr = Math.exp(lnQ_umol) / 88.4;
-            } else {
-                // Constantes fijas para mayores de 25 años
-                Q_cr = (sexo === 'M' || sexo === 'Hombre') ? 0.90 : 0.70;
-            }
-            const ratioCr = cr / Q_cr;
-            const alphaCr = ratioCr <= 1 ? -0.322 : -1.132;
-            ekfc_cr = 107.3 * Math.pow(ratioCr, alphaCr) * Math.pow(0.990, (edadExacta > 40 ? edadExacta - 40 : 0));
-        }
-
-        if (cistC && edadExacta >= 2) {
-            // Factor Q para Cistatina C es 0.83 fijo independiente del sexo
-            const Q_cistC = 0.83;
-            const ratioCistC = cistC / Q_cistC;
-            const alphaCistC = ratioCistC <= 1 ? -0.322 : -1.132;
-            ekfc_cistc = 107.3 * Math.pow(ratioCistC, alphaCistC) * Math.pow(0.990, (edadExacta > 50 ? edadExacta - 50 : 0));
-        }
-    }
-
-    // --- 2. RESTO DE CÁLCULOS (Excreción Fraccional, etc.) ---
-    const efNa = (data.na_plasma_meq_l && data.creatinina_orina_mg_dl && data.na_orina_meq_l && data.creatinina_enz_mg_dl) ? (data.na_orina_meq_l * data.creatinina_enz_mg_dl) / (data.na_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
-    const efK = (data.k_plasma_meq_l && data.creatinina_orina_mg_dl && data.k_orina_meq_l && data.creatinina_enz_mg_dl) ? (data.k_orina_meq_l * data.creatinina_enz_mg_dl) / (data.k_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
-    const efCl = (data.cl_plasma_meq_l && data.creatinina_orina_mg_dl && data.cl_orina_meq_l && data.creatinina_enz_mg_dl) ? (data.cl_orina_meq_l * data.creatinina_enz_mg_dl) / (data.cl_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
-    const efAU = (data.au_plasma_mg_dl && data.creatinina_orina_mg_dl && data.au_orina_mg_dl && data.creatinina_enz_mg_dl) ? (data.au_orina_mg_dl * data.creatinina_enz_mg_dl) / (data.au_plasma_mg_dl * data.creatinina_orina_mg_dl) * 100 : 0;
-
-    const cacr = data.creatinina_orina_mg_dl > 0 ? data.ca_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
-    const mgcr = data.creatinina_orina_mg_dl > 0 ? data.magnesio_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
-    const pcr = data.creatinina_orina_mg_dl > 0 ? data.fosforo_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
-    const aucr = data.creatinina_orina_mg_dl > 0 ? data.au_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
-    const albcr = data.creatinina_orina_mg_dl > 0 ? (data.albumina_orina_mg_dl / data.creatinina_orina_mg_dl) * 1000 : 0;
-    const protcr = data.creatinina_orina_mg_dl > 0 ? (data.proteinas_orina_mg_dl / data.creatinina_orina_mg_dl) * 1000 : 0;
-    const citratocr = data.creatinina_orina_mg_dl > 0 ? data.citrato_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
-    const oxalatocr = data.creatinina_orina_mg_dl > 0 ? data.oxalato_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
-    const nak = data.k_orina_meq_l > 0 ? data.na_orina_meq_l / data.k_orina_meq_l : 0;
-    const cacitrato = data.citrato_orina_mg_dl > 0 ? data.ca_orina_mg_dl / data.citrato_orina_mg_dl : 0;
-
-    const rtp = (data.p_plasma_mg_dl && data.fosforo_orina_mg_dl && data.creatinina_orina_mg_dl && data.creatinina_enz_mg_dl) ? 100 - ((data.fosforo_orina_mg_dl * data.creatinina_enz_mg_dl) / (data.p_plasma_mg_dl * data.creatinina_orina_mg_dl)) * 100 : 0;
-
-    const uricosuria = superficieCorporal > 0 ? (data.au_24h_mg / superficieCorporal) * 1.73 : 0;
-    const calciuria = data.peso_kg > 0 ? data.ca_24h_mg / data.peso_kg : 0;
-    const citraturia = data.peso_kg > 0 ? data.citrato_24h_mg / data.peso_kg : 0;
-    const fosfaturia = data.peso_kg > 0 ? data.p_24h_mg / data.peso_kg : 0;
-    const magnesuria = data.peso_kg > 0 ? data.mg_24h_mg / data.peso_kg : 0;
-    const oxaluria = superficieCorporal > 0 ? (data.oxalato_24h_mg / superficieCorporal) * 1.73 : 0;
-    const albuminuria = superficieCorporal > 0 ? (data.albumina_24h_mg / superficieCorporal) * 1.73 : 0;
-    const proteinuria = superficieCorporal > 0 ? data.proteinas_24h_mg / superficieCorporal : 0;
-    const proteinuriaEstimada = protcr * 0.63;
-    const vpercent = (data.creatinina_enz_mg_dl > 0 && data.creatinina_orina_mg_dl > 0) ? (data.creatinina_enz_mg_dl / data.creatinina_orina_mg_dl) * 100 : 0;
-
-    return {
-        superficiecorporal: superficieCorporal, imc: imc, vpercent: vpercent, 
-        schwartz_neo, schwartz_lact, schwartz_bedside, bokenkamp, ekfc_cr, ekfc_cistc,
-        ckid_u25_cr: ckid_u25_cr, ckid_u25_cistc: ckid_u25_cistc, ckid_u25_combinado: ckid_u25_combinado, 
-        efau: efAU, efna: efNa, efk: efK, efcl: efCl, cacr: cacr, rtp: rtp, mgcr: mgcr, pcr: pcr, aucr: aucr, 
-        citratocr: citratocr, cacitrato: cacitrato, oxalatocr: oxalatocr, albcr: albcr, protcr: protcr, nak: nak, 
-        uricosuria: uricosuria, calciuria: calciuria, citraturia: citraturia, fosfaturia: fosfaturia, oxaluria: oxaluria, 
-        magnesuria: magnesuria, albuminuria: albuminuria, proteinuria: proteinuria, proteinuriaestimada: proteinuriaEstimada
-    };
-}
 
 // =========================================================
 // EL PINTOR (ORQUESTADOR): Interfaz de Usuario
@@ -1121,7 +840,7 @@ function executeCalculations() {
     calcButton.innerHTML = 'Calculando... <i class="fas fa-spinner fa-spin" style="margin-left: 8px;"></i>';
 
     try {
-        AppState.calculatedResults = performMedicalCalculations(data);
+            AppState.calculatedResults = performMedicalCalculations(data, AppState.edadEnAños, AppState.edadEnMeses);
 
         setTimeout(() => {
             displayResults();
@@ -1239,124 +958,159 @@ function generateReport(data) {
 
     function isValid(value) { return value != null && !isNaN(value) && value !== 0; }
     function fmt(value, decimals = 2) { return !isValid(value) ? null : parseFloat(value).toFixed(decimals); }
+    function fmtParam(key, value, decimals = 2) {
+        if (!isValid(value)) return null;
+        const p = PARAMETROS[key];
+        return `${p?.label ?? key}: ${fmt(value, decimals)}${p?.unit ?? ''}`;
+    }
 
     let report = [];
-        
+
+    // ── HIDROSALINO ──────────────────────────────────────────────
     let hidrosalino = [];
     if (isValid(data.urea_mg_dl)) hidrosalino.push(`Urea: ${fmt(data.urea_mg_dl)}mg/dL`);
-    
+
     if (isValid(data.creatinina_enz_mg_dl)) {
         let cr = `Cr: ${fmt(data.creatinina_enz_mg_dl)}mg/dL`;
-        if (isValid(results.schwartz_neo)) cr += ` (eGFR Schwartz neonatal: ${fmt(results.schwartz_neo)}ml/min/1.73m²)`;
-        if (isValid(results.schwartz_lact)) cr += ` (eGFR Schwartz lactante: ${fmt(results.schwartz_lact)}ml/min/1.73m²)`;
-        if (isValid(results.schwartz_bedside)) cr += ` (eGFR Schwartz Bedside: ${fmt(results.schwartz_bedside)}ml/min/1.73m²)`;
-        if (isValid(results.ckid_u25_cr)) cr += ` (eGFR CKiD U25 Cr: ${fmt(results.ckid_u25_cr)}ml/min/1.73m²)`;
-        if (isValid(results.ekfc_cr)) cr += ` (eGFR EKFC Cr: ${fmt(results.ekfc_cr)}ml/min/1.73m²)`;
+        [
+            fmtParam('schwartzneo',     results.schwartz_neo),
+            fmtParam('schwartzlact',    results.schwartz_lact),
+            fmtParam('schwartzbedside', results.schwartz_bedside),
+            fmtParam('ckidu25cr',       results.ckid_u25_cr),
+            fmtParam('ekfccr',          results.ekfc_cr),
+        ].filter(Boolean).forEach(l => cr += ` (${l})`);
         hidrosalino.push(cr);
     }
-    
+
     if (isValid(data.cistatina_c_mg_l)) {
         let cist = `Cistatina C: ${fmt(data.cistatina_c_mg_l)}mg/L`;
-        if (isValid(results.bokenkamp)) cist += ` (eGFR Bökenkamp: ${fmt(results.bokenkamp)}ml/min/1.73m²)`;
-        if (isValid(results.ckid_u25_cistc)) cist += ` (eGFR CKiD U25 CistC: ${fmt(results.ckid_u25_cistc)}ml/min/1.73m²)`;
-        if (isValid(results.ekfc_cistc)) cist += ` (EKFCCystC: ${fmt(results.ekfc_cistc)}ml/min/1.73m²)`; 
+        [
+            fmtParam('bokenkamp',    results.bokenkamp),
+            fmtParam('ckidu25cistc', results.ckid_u25_cistc),
+            fmtParam('ekfccistc',    results.ekfc_cistc),
+        ].filter(Boolean).forEach(l => cist += ` (${l})`);
         hidrosalino.push(cist);
     }
-    
-    if (isValid(results.ckid_u25_combinado)) hidrosalino.push(`(eGFR Combinado CKiD U25: ${fmt(results.ckid_u25_combinado)}ml/min/1.73m²)`);
-    if (isValid(results.vpercent)) hidrosalino.push(`V%: ${fmt(results.vpercent)}%`);
-    if (isValid(data.na_plasma_meq_l)) hidrosalino.push(`Na: ${fmt(data.na_plasma_meq_l)}mEq/L`);
-    if (isValid(results.efna)) hidrosalino.push(`EFNa: ${fmt(results.efna)}`);
-    if (isValid(data.k_plasma_meq_l)) hidrosalino.push(`K: ${fmt(data.k_plasma_meq_l)}mEq/L`);
-    if (isValid(results.efk)) hidrosalino.push(`EFK: ${fmt(results.efk)}`);
-    if (isValid(data.cl_plasma_meq_l)) hidrosalino.push(`Cl: ${fmt(data.cl_plasma_meq_l)}mEq/L`);
-    if (isValid(results.efcl)) hidrosalino.push(`EFCl: ${fmt(results.efcl)}`);
-    if (isValid(data.au_plasma_mg_dl)) hidrosalino.push(`AU: ${fmt(data.au_plasma_mg_dl)}mg/dL`);
-    if (isValid(results.efau)) hidrosalino.push(`EFAU: ${fmt(results.efau)}`);
 
+    const combinadoLine = fmtParam('ckidu25combinado', results.ckid_u25_combinado);
+    if (combinadoLine) hidrosalino.push(`(${combinadoLine})`);
+
+    const vpLine = fmtParam('vpercent', results.vpercent);
+    if (vpLine) hidrosalino.push(vpLine);
+
+    if (isValid(data.na_plasma_meq_l)) hidrosalino.push(`Na: ${fmt(data.na_plasma_meq_l)}mEq/L`);
+    const efnaLine = fmtParam('efna', results.efna);
+    if (efnaLine) hidrosalino.push(efnaLine);
+
+    if (isValid(data.k_plasma_meq_l)) hidrosalino.push(`K: ${fmt(data.k_plasma_meq_l)}mEq/L`);
+    const efkLine = fmtParam('efk', results.efk);
+    if (efkLine) hidrosalino.push(efkLine);
+
+    if (isValid(data.cl_plasma_meq_l)) hidrosalino.push(`Cl: ${fmt(data.cl_plasma_meq_l)}mEq/L`);
+    const efclLine = fmtParam('efcl', results.efcl);
+    if (efclLine) hidrosalino.push(efclLine);
+
+    if (isValid(data.au_plasma_mg_dl)) hidrosalino.push(`AU: ${fmt(data.au_plasma_mg_dl)}mg/dL`);
+    const efauLine = fmtParam('efau', results.efau);
+    if (efauLine) hidrosalino.push(efauLine);
+
+    // ── FOSFOCÁLCICO ─────────────────────────────────────────────
     let fosfocalcico = [];
     if (isValid(data.ca_plasma_mg_dl)) fosfocalcico.push(`Ca: ${fmt(data.ca_plasma_mg_dl)}mg/dL`);
-    if (isValid(results.cacr)) fosfocalcico.push(`Ca/Cr: ${fmt(results.cacr)}mg/mg`);
+    const cacrLine = fmtParam('cacr', results.cacr);
+    if (cacrLine) fosfocalcico.push(cacrLine);
+
     if (isValid(data.p_plasma_mg_dl)) fosfocalcico.push(`P: ${fmt(data.p_plasma_mg_dl)}mg/dL`);
-    if (isValid(results.rtp)) fosfocalcico.push(`RTP: ${fmt(results.rtp)}%`);
+    const rtpLine = fmtParam('rtp', results.rtp);
+    if (rtpLine) fosfocalcico.push(rtpLine);
+
     if (isValid(data.mg_plasma_mg_dl)) fosfocalcico.push(`Mg: ${fmt(data.mg_plasma_mg_dl)}mg/dL`);
-    if (isValid(results.mgcr)) fosfocalcico.push(`Mg/Cr: ${fmt(results.mgcr)}mg/mg`);
-    if (isValid(results.pcr)) fosfocalcico.push(`P/Cr: ${fmt(results.pcr)}mg/mg`);
-    if (isValid(data.pth_pg_ml)) fosfocalcico.push(`PTH: ${fmt(data.pth_pg_ml)}pg/mL`);
-    if (isValid(data.vitamina_d_ng_ml)) fosfocalcico.push(`Vitamina D: ${fmt(data.vitamina_d_ng_ml)}ng/mL`);
+    const mgcrLine = fmtParam('mgcr', results.mgcr);
+    if (mgcrLine) fosfocalcico.push(mgcrLine);
+
+    const pcrLine = fmtParam('pcr', results.pcr);
+    if (pcrLine) fosfocalcico.push(pcrLine);
+
+    if (isValid(data.pth_pg_ml))             fosfocalcico.push(`PTH: ${fmt(data.pth_pg_ml)}pg/mL`);
+    if (isValid(data.vitamina_d_ng_ml))      fosfocalcico.push(`Vitamina D: ${fmt(data.vitamina_d_ng_ml)}ng/mL`);
     if (isValid(data.fosfatasa_alcalina_u_l)) fosfocalcico.push(`Fosfatasa alcalina: ${fmt(data.fosfatasa_alcalina_u_l)}U/L`);
 
+    // ── HEMATOLÓGICO ─────────────────────────────────────────────
     let hematologico = [];
-    if (isValid(data.hb_g_l)) hematologico.push(`Hemoglobina: ${fmt(data.hb_g_l)}g/L`);
+    if (isValid(data.hb_g_l))          hematologico.push(`Hemoglobina: ${fmt(data.hb_g_l)}g/L`);
     if (isValid(data.ferritina_ng_ml)) hematologico.push(`Ferritina: ${fmt(data.ferritina_ng_ml)}ng/mL`);
-    if (isValid(data.ist_percent)) hematologico.push(`IST: ${fmt(data.ist_percent)}%`);
-    const serieBlanca = escapeHTML(document.getElementById('serie_blanca')?.value.trim() ?? '');
+    if (isValid(data.ist_percent))     hematologico.push(`IST: ${fmt(data.ist_percent)}%`);
+    const serieBlanca      = escapeHTML(document.getElementById('serie_blanca')?.value.trim() ?? '');
     const seriePlaquetaria = escapeHTML(document.getElementById('serie_plaquetaria')?.value.trim() ?? '');
-    const coagulacion = escapeHTML(document.getElementById('coagulacion')?.value.trim() ?? '');
-    if (serieBlanca) hematologico.push(`Serie blanca: ${serieBlanca}`);
+    const coagulacion      = escapeHTML(document.getElementById('coagulacion')?.value.trim() ?? '');
+    if (serieBlanca)      hematologico.push(`Serie blanca: ${serieBlanca}`);
     if (seriePlaquetaria) hematologico.push(`Serie plaquetaria: ${seriePlaquetaria}`);
-    if (coagulacion) hematologico.push(`Coagulación: ${coagulacion}`);
+    if (coagulacion)      hematologico.push(`Coagulación: ${coagulacion}`);
 
+    // ── GASOMETRÍA ───────────────────────────────────────────────
     let gasometria = [];
-    if (isValid(data.ph_plasma)) gasometria.push(`pH: ${fmt(data.ph_plasma)}`);
-    if (isValid(data.pco2_mmhg)) gasometria.push(`pCO2: ${fmt(data.pco2_mmhg)}mmHg`);
-    if (isValid(data.hco3_mmol_l)) gasometria.push(`HCO3: ${fmt(data.hco3_mmol_l)}mmol/L`);
-    if (isValid(data.exceso_bases_mmol_l)) gasometria.push(`Exceso de bases: ${fmt(data.exceso_bases_mmol_l)}mmol/L`);
+    if (isValid(data.ph_plasma))             gasometria.push(`pH: ${fmt(data.ph_plasma)}`);
+    if (isValid(data.pco2_mmhg))             gasometria.push(`pCO2: ${fmt(data.pco2_mmhg)}mmHg`);
+    if (isValid(data.hco3_mmol_l))           gasometria.push(`HCO3: ${fmt(data.hco3_mmol_l)}mmol/L`);
+    if (isValid(data.exceso_bases_mmol_l))   gasometria.push(`Exceso de bases: ${fmt(data.exceso_bases_mmol_l)}mmol/L`);
 
+    // ── ORINA PUNTUAL ────────────────────────────────────────────
     let orina = [];
-    const sedimentoUrinario = escapeHTML(document.getElementById('sedimento_urinario')?.value.trim() ?? '');
+    const sedimentoUrinario    = escapeHTML(document.getElementById('sedimento_urinario')?.value.trim() ?? '');
     const comentarioNutricional = escapeHTML(document.getElementById('comentario_nutricional')?.value.trim() ?? '');
-    if (isValid(data.densidad)) orina.push(`Densidad: ${fmt(data.densidad, 0)}`);
-    if (isValid(data.ph_orina)) orina.push(`pH: ${fmt(data.ph_orina)}`);
-    
+    if (isValid(data.densidad))  orina.push(`Densidad: ${fmt(data.densidad, 0)}`);
+    if (isValid(data.ph_orina))  orina.push(`pH: ${fmt(data.ph_orina)}`);
+
     let sedimentoParts = [];
-    if (isValid(results.protcr)) sedimentoParts.push(`Prot/Cr: ${fmt(results.protcr)}mg/g`);
-    if (isValid(results.proteinuriaestimada)) sedimentoParts.push(`Proteinuria estimada: ${fmt(results.proteinuriaestimada)}mg/m²/día`);
-    if (isValid(results.albcr)) sedimentoParts.push(`Alb/Cr: ${fmt(results.albcr)}mg/g`);
-    
+    [
+        ['protcr',              results.protcr],
+        ['proteinuriaestimada', results.proteinuriaestimada],
+        ['albcr',               results.albcr],
+    ].forEach(([key, val]) => {
+        const line = fmtParam(key, val);
+        if (line) sedimentoParts.push(line);
+    });
+
     if (sedimentoUrinario) {
         orina.push(`Sedimento: ${sedimentoUrinario}`);
         if (sedimentoParts.length > 0) orina.push(sedimentoParts.join('   '));
     } else if (sedimentoParts.length > 0) {
         orina.push(`Sedimento: ${sedimentoParts.join('   ')}`);
     }
-    
+
     if (isValid(data.osmolalidad_orina_mosm_kg)) orina.push(`Osmolalidad urinaria: ${fmt(data.osmolalidad_orina_mosm_kg)}mOsm/kg`);
 
+    // ── COCIENTES ────────────────────────────────────────────────
     let cocientes = [];
-    if (isValid(results.aucr)) cocientes.push(`AU/Cr: ${fmt(results.aucr)}mg/mg`);
-    if (isValid(results.nak)) cocientes.push(`Na/K: ${fmt(results.nak)}`);
-    if (isValid(results.cacr)) cocientes.push(`Ca/Cr: ${fmt(results.cacr)}mg/mg`);
-    if (isValid(results.citratocr)) cocientes.push(`Citrato/Cr: ${fmt(results.citratocr)}mg/mg`);
-    if (isValid(results.cacitrato)) cocientes.push(`Ca/Citrato: ${fmt(results.cacitrato)}`);
-    if (isValid(results.oxalatocr)) cocientes.push(`Oxalato/Cr: ${fmt(results.oxalatocr)}mg/mg`);
+    ['aucr', 'nak', 'cacr', 'citratocr', 'cacitrato', 'oxalatocr'].forEach(key => {
+        const line = fmtParam(key, results[key]);
+        if (line) cocientes.push(line);
+    });
 
+    // ── ORINA 24H ────────────────────────────────────────────────
     let orina24h = [];
-    if (isValid(results.uricosuria)) orina24h.push(`Uricosuria: ${fmt(results.uricosuria)}mg/1.73m²`);
-    if (isValid(results.calciuria)) orina24h.push(`Calciuria: ${fmt(results.calciuria)}mg/kg/día`);
-    if (isValid(results.citraturia)) orina24h.push(`Citraturia: ${fmt(results.citraturia)}mg/kg/día`);
-    if (isValid(results.fosfaturia)) orina24h.push(`Fosfaturia: ${fmt(results.fosfaturia)}mg/kg/día`);
-    if (isValid(results.oxaluria)) orina24h.push(`Oxaluria: ${fmt(results.oxaluria)}mg/1.73m²`);
-    if (isValid(results.magnesuria)) orina24h.push(`Magnesuria: ${fmt(results.magnesuria)}mg/kg/día`);
-    if (isValid(results.proteinuria)) orina24h.push(`Proteinuria: ${fmt(results.proteinuria)}mg/m²/día`);
-    if (isValid(results.albuminuria)) orina24h.push(`Albuminuria: ${fmt(results.albuminuria)}mg/1.73m²/día`);
+    ['uricosuria', 'calciuria', 'citraturia', 'fosfaturia', 'oxaluria', 'magnesuria', 'proteinuria', 'albuminuria'].forEach(key => {
+        const line = fmtParam(key, results[key]);
+        if (line) orina24h.push(line);
+    });
 
-    let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + cocientes.length + orina24h.length) > 0;
+    // ── RESTO DE LA FUNCIÓN (sin cambios) ────────────────────────
+    let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + cocientes.length + orina24h.length + (comentarioNutricional ? 1 : 0)) > 0;
 
     if (hayDatosAnalitica) {
-        report.push("1) Analítica:");
-        if (hidrosalino.length > 0) report.push(`- Hidrosalino: ${hidrosalino.join('   ')}`);
-        if (fosfocalcico.length > 0) report.push(`- Metabolismo fosfocálcico: ${fosfocalcico.join('   ')}`);
-        if (hematologico.length > 0) report.push(`- Hematológico: ${hematologico.join('   ')}`);
-        if (gasometria.length > 0) report.push(`- Gasometría: ${gasometria.join('   ')}`);
-        if (orina.length > 0) report.push(`- Orina puntual: ${orina.join('   ')}`);
-        if (cocientes.length > 0) report.push(`- Cocientes urinarios: ${cocientes.join('   ')}`);
-        if (orina24h.length > 0) report.push(`- Orina de 24h: ${orina24h.join(' | ')}`);
-        
+        report.push("1) Analítica");
+        if (hidrosalino.length > 0)  report.push(`Hidrosalino: ${hidrosalino.join(' | ')}`);
+        if (fosfocalcico.length > 0) report.push(`Metabolismo fosfocálcico: ${fosfocalcico.join(' | ')}`);
+        if (hematologico.length > 0) report.push(`Hematológico: ${hematologico.join(' | ')}`);
+        if (gasometria.length > 0)   report.push(`Gasometría: ${gasometria.join(' | ')}`);
+        if (orina.length > 0)        report.push(`Orina puntual: ${orina.join(' | ')}`);
+        if (cocientes.length > 0)    report.push(`Cocientes urinarios: ${cocientes.join(' | ')}`);
+        if (orina24h.length > 0)     report.push(`Orina de 24h: ${orina24h.join(' | ')}`);
+        if (comentarioNutricional)   report.push(`Otros: ${comentarioNutricional}`);
     }
     if (AppState.ecografiaReportText) {
-        report.push(`2) Ecografía renal`);
-        report.push(AppState.ecografiaReportText);
+        report.push(`\n2) Ecografía Renal`);
+        report.push(AppState.ecografiaReportText.replace(/^-/, '').trim());
     }
 
     function evaluarGradoG(egfr) {
@@ -1368,16 +1122,16 @@ function generateReport(data) {
         if (egfr >= 15) return "Estadio G4 (Muy disminuido)";
         return "Estadio G5 (Fallo renal)";
     }
-    
+
     function evaluarERC_Lactante(egfr, meses) {
         if (!isValid(egfr)) return null;
         const limites = {
-            1: [35, 24, 12, 5], 2: [40, 27, 13, 6], 3: [45, 30, 15, 7], 4: [50, 33, 17, 8],
-            5: [55, 37, 18, 9], 6: [60, 40, 20, 10], 7: [63, 42, 21, 10], 8: [65, 44, 22, 11],
-            9: [68, 45, 23, 11], 10: [70, 47, 24, 11], 11: [73, 49, 24, 12], 12: [75, 50, 25, 12],
-            13: [76, 51, 25, 12], 14: [77, 52, 26, 13], 15: [78, 53, 26, 13], 16: [79, 54, 27, 13],
-            17: [81, 54, 27, 14], 18: [82, 55, 28, 14], 19: [83, 56, 28, 14], 20: [84, 57, 29, 14],
-            21: [85, 58, 29, 14], 22: [87, 59, 29, 15], 23: [88, 59, 30, 15], 24: [90, 60, 30, 15]
+            1: [35,24,12,5], 2: [40,27,13,6], 3: [45,30,15,7], 4: [50,33,17,8],
+            5: [55,37,18,9], 6: [60,40,20,10], 7: [63,42,21,10], 8: [65,44,22,11],
+            9: [68,45,23,11], 10: [70,47,24,11], 11: [73,49,24,12], 12: [75,50,25,12],
+            13: [76,51,25,12], 14: [77,52,26,13], 15: [78,53,26,13], 16: [79,54,27,13],
+            17: [81,54,27,14], 18: [82,55,28,14], 19: [83,56,28,14], 20: [84,57,29,14],
+            21: [85,58,29,14], 22: [87,59,29,15], 23: [88,59,30,15], 24: [90,60,30,15]
         };
         const m = meses <= 0 ? 1 : (meses > 24 ? 24 : Math.floor(meses));
         const [g1, g2, g3, g4] = limites[m];
@@ -1397,21 +1151,23 @@ function generateReport(data) {
 
     const mesesTotales = AppState.edadTotalMeses || 0;
     let htmlEstadificacion = "";
+    AppState.estadificacionKDIGO = null;
 
     if (AppState.edadEnAños >= 2) {
         let grados_kdigo = [];
-        if (isValid(results.schwartz_bedside)) grados_kdigo.push(`- eGFR Schwartz Bedside: ${evaluarGradoG(results.schwartz_bedside)}`);
-        if (isValid(results.ckid_u25_cr)) grados_kdigo.push(`- eGFR CKiD U25 Cr: ${evaluarGradoG(results.ckid_u25_cr)}`);
-        if (isValid(results.ekfc_cr)) grados_kdigo.push(`- eGFR EKFC Cr: ${evaluarGradoG(results.ekfc_cr)}`);
-        if (isValid(results.ckid_u25_cistc)) grados_kdigo.push(`- eGFR CKiD U25 CistC: ${evaluarGradoG(results.ckid_u25_cistc)}`);
-        if (isValid(results.ekfc_cistc)) grados_kdigo.push(`- eGFR EKFCCystC: ${evaluarGradoG(results.ekfc_cistc)}`);
+        if (isValid(results.schwartz_bedside))   grados_kdigo.push(`- eGFR Schwartz Bedside: ${evaluarGradoG(results.schwartz_bedside)}`);
+        if (isValid(results.ckid_u25_cr))        grados_kdigo.push(`- eGFR CKiD U25 Cr: ${evaluarGradoG(results.ckid_u25_cr)}`);
+        if (isValid(results.ekfc_cr))            grados_kdigo.push(`- eGFR EKFC Cr: ${evaluarGradoG(results.ekfc_cr)}`);
+        if (isValid(results.ckid_u25_cistc))     grados_kdigo.push(`- eGFR CKiD U25 CistC: ${evaluarGradoG(results.ckid_u25_cistc)}`);
+        if (isValid(results.ekfc_cistc))         grados_kdigo.push(`- eGFR EKFCCystC: ${evaluarGradoG(results.ekfc_cistc)}`);
         if (isValid(results.ckid_u25_combinado)) grados_kdigo.push(`- eGFR Combinado (CKiD U25): ${evaluarGradoG(results.ckid_u25_combinado)}`);
         let gradoAlb = (results.albcr !== undefined && results.albcr > 0) ? evaluarGradoA(results.albcr) : null;
         if (gradoAlb) grados_kdigo.push(`- Albuminuria: ${gradoAlb}`);
 
         if (grados_kdigo.length > 0) {
+            AppState.estadificacionKDIGO = { titulo: 'Estadificación según guías KDIGO 2024', items: grados_kdigo.map(g => g.replace('- ', '')) };
             report.push('\n\nESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2024\n');
-            report = report.concat(grados_kdigo); 
+            report = report.concat(grados_kdigo);
             htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación según guías KDIGO 2024</h4><ul style="margin-top: 0; padding-left: 20px;">`;
             grados_kdigo.forEach(g => {
                 let part = g.replace('- ', '').split(': ');
@@ -1421,20 +1177,21 @@ function generateReport(data) {
         }
     } else {
         let grados_lactante = [];
-        if (isValid(results.schwartz_neo)) grados_lactante.push(`- eGFR Schwartz neonatal: ${evaluarERC_Lactante(results.schwartz_neo, mesesTotales)}`);
-        if (isValid(results.schwartz_lact)) grados_lactante.push(`- eGFR Schwartz lactante: ${evaluarERC_Lactante(results.schwartz_lact, mesesTotales)}`);
-        if (isValid(results.schwartz_bedside)) grados_lactante.push(`- eGFR Schwartz Bedside: ${evaluarERC_Lactante(results.schwartz_bedside, mesesTotales)}`);
-        if (isValid(results.ckid_u25_cr)) grados_lactante.push(`- eGFR CKiD U25 Cr: ${evaluarERC_Lactante(results.ckid_u25_cr, mesesTotales)}`);
-        if (isValid(results.ekfc_cr)) grados_lactante.push(`- eGFR EKFC Cr: ${evaluarERC_Lactante(results.ekfc_cr, mesesTotales)}`);
-        if (isValid(results.bokenkamp)) grados_lactante.push(`- eGFR Bökenkamp (CistC): ${evaluarERC_Lactante(results.bokenkamp, mesesTotales)}`);
-        if (isValid(results.ckid_u25_cistc)) grados_lactante.push(`- eGFR CKiD U25 CistC: ${evaluarERC_Lactante(results.ckid_u25_cistc, mesesTotales)}`);
-        if (isValid(results.ekfc_cistc)) grados_lactante.push(`- eGFR EKFCCystC: ${evaluarERC_Lactante(results.ekfc_cistc, mesesTotales)}`);
+        if (isValid(results.schwartz_neo))       grados_lactante.push(`- eGFR Schwartz neonatal: ${evaluarERC_Lactante(results.schwartz_neo, mesesTotales)}`);
+        if (isValid(results.schwartz_lact))      grados_lactante.push(`- eGFR Schwartz lactante: ${evaluarERC_Lactante(results.schwartz_lact, mesesTotales)}`);
+        if (isValid(results.schwartz_bedside))   grados_lactante.push(`- eGFR Schwartz Bedside: ${evaluarERC_Lactante(results.schwartz_bedside, mesesTotales)}`);
+        if (isValid(results.ckid_u25_cr))        grados_lactante.push(`- eGFR CKiD U25 Cr: ${evaluarERC_Lactante(results.ckid_u25_cr, mesesTotales)}`);
+        if (isValid(results.ekfc_cr))            grados_lactante.push(`- eGFR EKFC Cr: ${evaluarERC_Lactante(results.ekfc_cr, mesesTotales)}`);
+        if (isValid(results.bokenkamp))          grados_lactante.push(`- eGFR Bökenkamp (CistC): ${evaluarERC_Lactante(results.bokenkamp, mesesTotales)}`);
+        if (isValid(results.ckid_u25_cistc))     grados_lactante.push(`- eGFR CKiD U25 CistC: ${evaluarERC_Lactante(results.ckid_u25_cistc, mesesTotales)}`);
+        if (isValid(results.ekfc_cistc))         grados_lactante.push(`- eGFR EKFCCystC: ${evaluarERC_Lactante(results.ekfc_cistc, mesesTotales)}`);
         if (isValid(results.ckid_u25_combinado)) grados_lactante.push(`- eGFR Combinado (CKiD U25): ${evaluarERC_Lactante(results.ckid_u25_combinado, mesesTotales)}`);
 
         if (grados_lactante.length > 0) {
+            AppState.estadificacionKDIGO = { titulo: 'Estadificación ERC (Ajustada a < 2 años)', items: grados_lactante.map(g => g.replace('- ', '')) };
             report.push('\n\nESTADIFICACIÓN ERC (AJUSTADA A EDAD < 2 AÑOS)\n');
             report = report.concat(grados_lactante);
-            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación ERC (Ajustada a < 2 años)</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación ERC (Ajustada a &lt; 2 años)</h4><ul style="margin-top: 0; padding-left: 20px;">`;
             grados_lactante.forEach(g => {
                 let part = g.replace('- ', '').split(': ');
                 htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(': ')}</li>`;
@@ -1442,19 +1199,16 @@ function generateReport(data) {
             htmlEstadificacion += `</ul>`;
         }
     }
-    
+
     let htmlFueraRango = "";
     if (AppState.valoresFueraRango && AppState.valoresFueraRango.length > 0) {
         report.push('\n\nVALORES FUERA DE RANGO\n');
-        let fueraRangoEditado = AppState.valoresFueraRango.map(v => `-${v}`);
-        fueraRangoEditado.forEach(v => report.push(v));
-
-    htmlFueraRango = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">⚠️ Valores fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px;">`;
-       AppState.valoresFueraRango.forEach(v => {
-    let part = v.split(':');
-    htmlFueraRango += `<li style="margin-bottom: 4px; color: #dc2626;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
-});
-
+        AppState.valoresFueraRango.map(v => `-${v}`).forEach(v => report.push(v));
+        htmlFueraRango = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">⚠️ Valores fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+        AppState.valoresFueraRango.forEach(v => {
+            let part = v.split(':');
+            htmlFueraRango += `<li style="margin-bottom: 4px; color: #dc2626;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
+        });
         htmlFueraRango += `</ul>`;
     }
 
@@ -1465,23 +1219,23 @@ function generateReport(data) {
         return split.length > 1 ? `<strong>${split[0]}:</strong> ${split.slice(1).join(': ')}` : str;
     };
 
-let html = `<div class="report-body">`;
+    let html = `<div class="report-body">`;
     if (hayDatosAnalitica) {
         html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">1) Analítica</h4>`;
         html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
-        if (hidrosalino.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Hidrosalino:</u></strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
+        if (hidrosalino.length > 0)  html += `<li style="margin-bottom: 4px;"><strong><u>Hidrosalino:</u></strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
         if (fosfocalcico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Metabolismo fosfocálcico:</u></strong> ${fosfocalcico.map(boldify).join(' | ')}</li>`;
-        if (hematologico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Hematológico:</u></strong> ${hematologico.map(boldify).join(' | ')}</li>`;
-        if (gasometria.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Gasometría:</u></strong> ${gasometria.map(boldify).join(' | ')}</li>`;
-        if (orina.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Orina puntual:</u></strong> ${orina.map(boldify).join(' | ')}</li>`;
-        if (cocientes.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Cocientes urinarios:</u></strong> ${cocientes.map(boldify).join(' | ')}</li>`;
-        if (orina24h.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Orina de 24h:</u></strong> ${orina24h.map(boldify).join(' | ')}</li>`;
-        if (comentarioNutricional) html += `<li style="margin-bottom: 4px;"><strong><u>Otros:</u></strong> ${comentarioNutricional}</li>`;
+        if (hematologico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Hematológico:</u></strong> ${hematologico.map(escapeHTML).map(boldify).join(' | ')}</li>`;
+        if (gasometria.length > 0)   html += `<li style="margin-bottom: 4px;"><strong><u>Gasometría:</u></strong> ${gasometria.map(boldify).join(' | ')}</li>`;
+        if (orina.length > 0)        html += `<li style="margin-bottom: 4px;"><strong><u>Orina puntual:</u></strong> ${orina.map(escapeHTML).map(boldify).join(' | ')}</li>`;
+        if (cocientes.length > 0)    html += `<li style="margin-bottom: 4px;"><strong><u>Cocientes urinarios:</u></strong> ${cocientes.map(boldify).join(' | ')}</li>`;
+        if (orina24h.length > 0)     html += `<li style="margin-bottom: 4px;"><strong><u>Orina de 24h:</u></strong> ${orina24h.map(boldify).join(' | ')}</li>`;
+        if (comentarioNutricional)   html += `<li style="margin-bottom: 4px;"><strong><u>Otros:</u></strong> ${escapeHTML(comentarioNutricional)}</li>`;
         html += `</ul>`;
     }
     if (AppState.ecografiaReportText) {
-        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">2) Ecografía Renal</h4>`;
-        html += `<p style="margin-top: 0; padding-left: 20px;">${AppState.ecografiaReportText.replace('-Longitud renal ecográfica: ', '<strong>Longitud renal ecográfica:</strong> ')}</p>`;
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 15px;">2) Ecografía Renal</h4>`;
+        html += `<p style="margin-top: 0; padding-left: 20px;">${escapeHTML(AppState.ecografiaReportText.replace(/^-/, '').trim()).replace('Longitud renal ecográfica: ', '<strong>Longitud renal ecográfica:</strong> ')}</p>`;
     }
     html += htmlEstadificacion;
     html += htmlFueraRango;
@@ -1489,7 +1243,6 @@ let html = `<div class="report-body">`;
 
     const reportContentDiv = document.getElementById('reportContent');
     reportContentDiv.innerHTML = DOMPurify.sanitize(html);
-
     document.getElementById('reportSection').classList.remove('hidden');
     setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
@@ -1500,12 +1253,12 @@ let html = `<div class="report-body">`;
 // ===============================================
 
 function buildReportHTML() {
-    const R     = AppState.calculatedResults;
+    const rawData = typeof getFormData === 'function' ? getFormData() : {};
+    const R     = Object.assign({}, rawData, AppState.calculatedResults);
     const edad  = AppState.edadEnAños  || 0;
     const edadM = AppState.edadEnMeses || 0;
     const get   = id => document.getElementById(id)?.value || '—';
-    const sexoStr = get('sexo') === 'M' ? 'Masculino' : 'Femenino';
-
+    const sexoStr = get('sexo') === 'M' ? 'Masculino' : (get('sexo') === 'F' ? 'Femenino' : '—');
 
     let html = '';
 
@@ -1543,12 +1296,26 @@ function buildReportHTML() {
       </tr>
     </table>`;
 
-    // ── Secciones de resultados ───────────────────────
-    SECCIONES.forEach(sec => {
-        const filas = sec.keys.filter(k => R[k] && R[k] !== 0 && !isNaN(R[k]));
-        if (!filas.length) return;
+    // Función auxiliar para dibujar tablas
+    const drawTable = (sec) => {
+        if (!sec) return '';
+        
+        let extraRows = [];
+        const tituloLower = sec.titulo.toLowerCase();
+        
+        if (tituloLower.includes('hematolog')) { 
+            if (get('serie_blanca') && get('serie_blanca') !== '—') extraRows.push({ label: 'Serie blanca', value: get('serie_blanca') });
+            if (get('serie_plaquetaria') && get('serie_plaquetaria') !== '—') extraRows.push({ label: 'Serie plaquetaria', value: get('serie_plaquetaria') });
+            if (get('coagulacion') && get('coagulacion') !== '—') extraRows.push({ label: 'Coagulación', value: get('coagulacion') });
+        }
+        if (tituloLower.includes('orina puntual')) { 
+            if (get('sedimento_urinario') && get('sedimento_urinario') !== '—') extraRows.push({ label: 'Sedimento', value: get('sedimento_urinario') });
+        }
 
-        html += `
+        const filas = sec.keys.filter(k => R[k] !== undefined && R[k] !== null && R[k] !== 0 && !isNaN(R[k]) && R[k] !== '');
+        if (!filas.length && !extraRows.length) return '';
+
+        let t = `
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
           <tr>
             <td colspan="3" style="background:#0891b2;padding:6px 10px;">
@@ -1556,12 +1323,13 @@ function buildReportHTML() {
             </td>
           </tr>
           <tr style="background:#e2e8f0;">
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:50%;">PARÁMETRO</td>
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:25%;">VALOR</td>
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:25%;">RANGO NORMAL</td>
+            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:40%;">PARÁMETRO</td>
+            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">VALOR</td>
+            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">RANGO NORMAL</td>
           </tr>`;
 
-        filas.forEach((key, i) => {
+        let i = 0;
+        filas.forEach((key) => {
             const val = R[key];
             const ev  = (key !== 'superficiecorporal' && key !== 'imc')
                         ? evaluarRango(key, val, edad, edadM)
@@ -1574,25 +1342,34 @@ function buildReportHTML() {
             const bg    = i % 2 === 0 ? '#ffffff' : '#f8fafc';
             const color = ev.enRango ? '#0891b2' : '#dc2626';
 
-            html += `
+            t += `
           <tr style="background:${bg};">
             <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${p?.label || key}</td>
             <td style="padding:5px 10px;font-size:12px;font-weight:bold;color:${color};font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${valorTexto}</td>
-            <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${(ev.rangoTexto || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>          </tr>`;
+            <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${(ev.rangoTexto || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+          </tr>`;
+            i++;
         });
 
-        html += `</table>`;
-    });
+        // Filas extra, alineadas perfectamente con la columna valor y SIN negrita
+        extraRows.forEach(row => {
+            const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+            t += `
+          <tr style="background:${bg};">
+            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${row.label}</td>
+            <td colspan="2" style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;white-space:pre-wrap;">${escapeHTML(row.value)}</td>
+          </tr>`;
+            i++;
+        });
 
-    // ── Bloques de texto libre ────────────────────────
-    const bloques = [
-        { titulo:'SEDIMENTO URINARIO',     texto: get('sedimento_urinario') },
-        { titulo:'OTROS',                  texto: get('comentarionutricional') },
-        { titulo:'ECOGRAFÍA RENAL',        texto: AppState.ecografiaReportText }
-    ];
-    bloques.forEach(({ titulo, texto }) => {
-        if (!texto || texto === '—') return;
-        html += `
+        t += `</table>`;
+        return t;
+    };
+
+    const drawTextBlock = (titulo, texto) => {
+        let textValue = (texto && typeof texto === 'string') ? texto.trim() : '';
+        if (!textValue || textValue === '—') return '';
+        return `
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
           <tr>
             <td style="background:#0891b2;padding:6px 10px;">
@@ -1600,12 +1377,20 @@ function buildReportHTML() {
             </td>
           </tr>
           <tr>
-            <td style="padding:10px 12px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;line-height:1.6;border:1px solid #e2e8f0;border-top:none;">${texto}</td>
+            <td style="padding:10px 12px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;line-height:1.6;border:1px solid #e2e8f0;border-top:none;white-space:pre-wrap;">${escapeHTML(textValue)}</td>
           </tr>
         </table>`;
-    });
+    };
 
-    // ── Alertas fuera de rango ────────────────────────
+    SECCIONES.forEach(sec => { html += drawTable(sec); });
+    
+    // OTROS como bloque de texto limpio
+    html += drawTextBlock('Otros', get('comentario_nutricional'));
+    
+    if (AppState.ecografiaReportText) {
+        html += drawTextBlock('Ecografía renal', AppState.ecografiaReportText.replace(/^-/, '').trim());
+    }
+
     if (AppState.valoresFueraRango?.length > 0) {
         const items = AppState.valoresFueraRango
             .map(v => `<li style="margin-bottom:3px;">${v.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('');
@@ -1620,7 +1405,22 @@ function buildReportHTML() {
         </table>`;
     }
 
-    // ── Pie ───────────────────────────────────────────
+    if (AppState.estadificacionKDIGO) {
+        const items = AppState.estadificacionKDIGO.items.map(v => {
+            const parts = v.split(':');
+            return `<li style="margin-bottom:3px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':')}</li>`;
+        }).join('');
+        html += `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+          <tr>
+            <td style="background:#f0f9ff;border:2px solid #0891b2;padding:12px 16px;">
+              <div style="font-size:12px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:6px;">${AppState.estadificacionKDIGO.titulo}</div>
+              <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
+            </td>
+          </tr>
+        </table>`;
+    }
+
     html += `
     <div style="margin-top:16px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:10px;color:#64748b;font-family:Arial,sans-serif;text-align:center;">
         NefroPed — Calculadora de Función Renal Pediátrica
@@ -1661,200 +1461,6 @@ function exportToWord() {
     } catch(e) {
         Swal.fire({ icon: 'error', title: 'Error', text: 'Error exportando.' });
     }
-}
-
-function exportToPDF() {
-    if (!AppState.calculatedResults || Object.keys(AppState.calculatedResults).length === 0) {
-        return Swal.fire({ icon: 'warning', title: 'Sin informe', text: 'Calcule primero los resultados.' });
-    }
-
-    Swal.fire({ title: 'Generando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    setTimeout(() => {
-        try {
-            const { jsPDF } = window.jspdf;
-            const doc  = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-            const R    = AppState.calculatedResults;
-            const edad = AppState.edadEnAños || 0;
-            const edadM = AppState.edadEnMeses || 0;
-            const margin = 14, pageW = 210, pageH = 297;
-            const maxW = pageW - margin * 2;
-            let y = 0;
-
-            const newPage = () => { doc.addPage(); y = margin; };
-            const check   = (h = 7) => { if (y + h > pageH - 12) newPage(); };
-
-            // ══ CABECERA ══════════════════════════════════
-            doc.setFillColor(...PDF_PALETTE.TEAL);
-            doc.rect(0, 0, pageW, 20, 'F');
-            doc.setTextColor(...PDF_PALETTE.WHITE);
-            doc.setFont('helvetica','bold'); doc.setFontSize(15);
-            doc.text('NefroPed', margin, 13);
-            doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
-            doc.text('Informe de Pruebas Complementarias Pediátricas', margin + 36, 13);
-            doc.setFontSize(8);
-            doc.text(new Date().toLocaleDateString('es-ES'), pageW - margin, 13, { align:'right' });
-            y = 26;
-
-            // ══ DATOS DEL PACIENTE ═════════════════════════
-            const get = id => document.getElementById(id)?.value || '—';
-            const sexoStr = get('sexo') === 'M' ? 'Masculino' : 'Femenino';
-
-            doc.setFillColor(...PDF_PALETTE.LGREY2);
-            doc.roundedRect(margin, y, maxW, 20, 2, 2, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...PDF_PALETTE.TEAL);
-            doc.text('DATOS DEL PACIENTE', margin+3, y+5.5);
-            doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.DARK);
-            doc.text(
-                `F. Nacimiento: ${get('fecha_nacimiento')}   F. Analítica: ${get('fecha_analitica')}   Edad: ${edad} años ${edadM} meses`,
-                margin+3, y+12
-            );
-            doc.text(
-                `Sexo: ${sexoStr}   Peso: ${get('peso_kg')} kg   Talla: ${get('talla_cm')} cm`,
-                margin+3, y+18
-            );
-            y += 25;
-
-            // ══ FILAS DE RESULTADOS ════════════════════════
-            const COL_VAL  = margin + 95;
-            const COL_RANG = margin + 135;
-            let alt = false;
-
-            SECCIONES.forEach(sec => {
-                const filas = sec.keys.filter(k => R[k] && R[k] !== 0 && !isNaN(R[k]));
-                if (!filas.length) return;
-
-                check(10 + filas.length * 7);
-
-                // Título sección
-                doc.setFillColor(...PDF_PALETTE.TEAL);
-                doc.rect(margin, y, maxW, 7, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(8);
-                doc.setTextColor(...PDF_PALETTE.WHITE);
-                doc.text(sec.titulo, margin+3, y+5);
-                y += 7;
-
-                // Cabecera columnas
-                doc.setFillColor(...PDF_PALETTE.LGREY);
-                doc.rect(margin, y, maxW, 5.5, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(7);
-                doc.setTextColor(...PDF_PALETTE.GREY);
-                doc.text('PARÁMETRO', margin+3, y+4);
-                doc.text('VALOR', COL_VAL, y+4);
-                doc.text('RANGO NORMAL', COL_RANG, y+4);
-                y += 5.5;
-
-                alt = false;
-                filas.forEach(key => {
-                    check(7);
-                    const val  = R[key];
-                    const ev   = (key !== 'superficiecorporal' && key !== 'imc')
-                                  ? evaluarRango(key, val, edad, edadM)
-                                  : { enRango: true, rangoTexto: '' };
-
-                    const p = PARAMETROS[key];
-                    const label = p?.label || key;
-                    const unit  = p?.unit  || '';
-
-                    let valorTexto = parseFloat(val).toFixed(2);
-                    if (unit) valorTexto += ' ' + unit;
-
-                    const rangStr = ev.rangoTexto || '—';
-
-                    if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, 6.5, 'F'); }
-                    alt = !alt;
-
-                    // Nombre
-                    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                    doc.setTextColor(...PDF_PALETTE.DARK);
-                    doc.text(label, margin+3, y+4.5);
-
-                    // Valor
-                    doc.setFont('helvetica','bold');
-                    if (ev.enRango) {
-                        doc.setTextColor(...PDF_PALETTE.TEAL);
-                    } else {
-                        doc.setTextColor(...PDF_PALETTE.RED);
-                    }
-                    doc.text(valorTexto, COL_VAL, y+4.5);
-
-                    // Rango
-                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                    doc.setTextColor(...PDF_PALETTE.GREY);
-                    doc.text(rangStr, COL_RANG, y+4.5);
-
-                    // Separador
-                    doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.1);
-                    doc.line(margin, y+6.5, pageW-margin, y+6.5);
-                    y += 6.5;
-                });
-                y += 4;
-            });
-
-            // ══ BLOQUE DE TEXTO LIBRE ══════════════════════
-            const bloques = [
-                { titulo: 'SEDIMENTO URINARIO', texto: get('sedimento_urinario') },
-                { titulo: 'OTROS',              texto: get('comentarionutricional') },
-                { titulo: 'ECOGRAFÍA RENAL',    texto: AppState.ecografiaReportText }
-            ];
-            bloques.forEach(({ titulo, texto }) => {
-                if (!texto || texto === '—') return;
-                check(18);
-                doc.setFillColor(...PDF_PALETTE.TEAL);
-                doc.rect(margin, y, maxW, 7, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(8);
-                doc.setTextColor(...PDF_PALETTE.WHITE);
-                doc.text(titulo, margin+3, y+5);
-                y += 13;
-                doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                doc.setTextColor(...PDF_PALETTE.DARK);
-                const lineas = doc.splitTextToSize(texto, maxW-4);
-                lineas.forEach(l => {
-                    check(6);
-                    doc.text(l, margin+2, y);
-                    y += 5.5;
-                });
-                y += 3;
-            });
-
-            // ══ RESUMEN ALERTAS ════════════════════════════
-            if (AppState.valoresFueraRango?.length > 0) {
-                const bH = 10 + AppState.valoresFueraRango.length * 5.5;
-                check(bH);
-                doc.setFillColor(...PDF_PALETTE.RED_BG);
-                doc.roundedRect(margin, y, maxW, bH, 2, 2, 'F');
-                doc.setDrawColor(...PDF_PALETTE.RED); doc.setLineWidth(0.4);
-                doc.roundedRect(margin, y, maxW, bH, 2, 2, 'S');
-                doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-                doc.setTextColor(...PDF_PALETTE.RED);
-                doc.text('⚠  VALORES FUERA DE RANGO', margin+4, y+6.5);
-                y += 10;
-                doc.setFont('helvetica','normal'); doc.setFontSize(8);
-                AppState.valoresFueraRango.forEach(v => {
-                    doc.text('• '+v, margin+6, y); y += 5.5;
-                });
-            }
-
-            // ══ PIE DE PÁGINA ══════════════════════════════
-            const total = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= total; i++) {
-                doc.setPage(i);
-                doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.3);
-                doc.line(margin, pageH-10, pageW-margin, pageH-10);
-                doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                doc.setTextColor(...PDF_PALETTE.GREY);
-                doc.text('NefroPed — Calculadora de Función Renal Pediátrica', margin, pageH-6);
-                doc.text(`Página ${i} de ${total}`, pageW-margin, pageH-6, { align:'right' });
-            }
-
-            doc.save('informe-nefroped.pdf');
-            Swal.fire({ icon:'success', title:'¡PDF descargado!', timer:1500, showConfirmButton:false });
-
-        } catch(e) {
-            console.error(e);
-            Swal.fire({ icon:'error', title:'Error', text:'No se pudo generar el PDF: '+e.message });
-        }
-    }, 100);
 }
 
 function printReport() {
@@ -2066,50 +1672,6 @@ function reactivarCaja(id) {
 // MOTOR MATEMÁTICO: ECOGRAFÍA RENAL (OBRYCKI & KRILL)
 // ==========================================
 
-const obryckiLMS = [
-    { min: 0, max: 54.9, L: 0.567, M: 50.4, S: 0.0844 },
-    { min: 55, max: 59.9, L: 0.532, M: 52.9, S: 0.0836 },
-    { min: 60, max: 64.9, L: 0.498, M: 55.4, S: 0.0828 },
-    { min: 65, max: 69.9, L: 0.458, M: 58.3, S: 0.0820 },
-    { min: 70, max: 74.9, L: 0.423, M: 60.8, S: 0.0812 },
-    { min: 75, max: 79.9, L: 0.387, M: 63.3, S: 0.0804 },
-    { min: 80, max: 84.9, L: 0.352, M: 65.7, S: 0.0797 },
-    { min: 85, max: 89.9, L: 0.312, M: 68.3, S: 0.0788 },
-    { min: 90, max: 94.9, L: 0.276, M: 70.6, S: 0.0781 },
-    { min: 95, max: 99.9, L: 0.237, M: 73.0, S: 0.0773 },
-    { min: 100, max: 104.9, L: 0.200, M: 75.2, S: 0.0765 },
-    { min: 105, max: 109.9, L: 0.165, M: 77.2, S: 0.0758 },
-    { min: 110, max: 114.9, L: 0.131, M: 79.1, S: 0.0751 },
-    { min: 115, max: 119.9, L: 0.090, M: 81.4, S: 0.0743 },
-    { min: 120, max: 124.9, L: 0.052, M: 83.5, S: 0.0735 },
-    { min: 125, max: 129.9, L: 0.015, M: 85.6, S: 0.0728 },
-    { min: 130, max: 134.9, L: -0.022, M: 87.8, S: 0.0721 },
-    { min: 135, max: 139.9, L: -0.058, M: 89.9, S: 0.0714 },
-    { min: 140, max: 144.9, L: -0.093, M: 92.1, S: 0.0707 },
-    { min: 145, max: 149.9, L: -0.131, M: 94.5, S: 0.0700 },
-    { min: 150, max: 154.9, L: -0.168, M: 97.0, S: 0.0693 },
-    { min: 155, max: 159.9, L: -0.207, M: 99.6, S: 0.0686 },
-    { min: 160, max: 164.9, L: -0.243, M: 102.1, S: 0.0680 },
-    { min: 165, max: 169.9, L: -0.279, M: 104.5, S: 0.0673 },
-    { min: 170, max: 174.9, L: -0.315, M: 106.9, S: 0.0667 },
-    { min: 175, max: 179.9, L: -0.353, M: 109.5, S: 0.0660 },
-    { min: 180, max: 184.9, L: -0.389, M: 111.9, S: 0.0654 },
-    { min: 185, max: 189.9, L: -0.427, M: 114.5, S: 0.0647 },
-    { min: 190, max: 194.9, L: -0.461, M: 116.8, S: 0.0641 },
-    { min: 195, max: 199.9, L: -0.486, M: 118.5, S: 0.0637 },
-    { min: 200, max: 300.0, L: -0.538, M: 122.0, S: 0.0628 }
-];
-
-function zScoreToPercentile(z) {
-    if (z === 0.0) return 50;
-    let b1 = 0.31938153, b2 = -0.356563782, b3 = 1.781477937, b4 = -1.821255978, b5 = 1.330274429;
-    let p = 0.2316419, c = 0.39894228;
-    let t = 1.0 / (1.0 + p * Math.abs(z));
-    let cdf = 1.0 - c * Math.exp(-z * z / 2.0) * t * (t *(t *(t *(t * b5 + b4) + b3) + b2) + b1);
-    if (z < 0) cdf = 1.0 - cdf;
-    return Math.round(cdf * 100);
-}
-
 function generarResultadoEcografia() {
     let checkMonoreno = document.getElementById('check_monoreno');
     let isMonoreno = checkMonoreno ? checkMonoreno.checked : false;
@@ -2185,5 +1747,9 @@ function generarResultadoEcografia() {
 
 }
 
-
-
+// Exponer funciones globales requeridas por los atributos onclick/onchange del index.html
+window.loadSampleData = loadSampleData;
+window.confirmarLimpiarFormulario = confirmarLimpiarFormulario;
+window.toggleMonoreno = toggleMonoreno;
+window.seleccionarRinonUnico = seleccionarRinonUnico;
+window.rellenarFechaHoy = rellenarFechaHoy;

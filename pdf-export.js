@@ -52,8 +52,16 @@ export function exportToPDF(AppState, rawData = {}) {
             y += 25;
 
             // ══ CONFIG COLUMNAS ════════════════════════════
-            const COL_VAL  = margin + 75;  
-            const COL_RANG = margin + 130; 
+            const PDF_CONFIG = {
+                rowHeight: 6.5,           // Altura estándar de una fila de tabla
+                textPadding: 4.5,         // Offset vertical del texto dentro de la celda
+                textLineHeight: 5.5,      // Espaciado vertical entre líneas (multilínea)
+                colValOffset: 75,         // Distancia X de la columna VALOR
+                colRangOffset: 130        // Distancia X de la columna RANGO NORMAL
+            };
+
+            const COL_VAL  = margin + PDF_CONFIG.colValOffset;  
+            const COL_RANG = margin + PDF_CONFIG.colRangOffset; 
 
             // ══ FUNCIÓN DIBUJAR TABLAS ═════════════════════
             const drawTable = (sec) => {
@@ -63,12 +71,16 @@ export function exportToPDF(AppState, rawData = {}) {
                 const tituloLower = sec.titulo.toLowerCase();
                 
                 if (tituloLower.includes('hematolog')) { 
-                    if (get('serie_blanca') && get('serie_blanca') !== '—') extraRows.push({ label: 'Serie blanca', value: get('serie_blanca') });
-                    if (get('serie_plaquetaria') && get('serie_plaquetaria') !== '—') extraRows.push({ label: 'Serie plaquetaria', value: get('serie_plaquetaria') });
-                    if (get('coagulacion') && get('coagulacion') !== '—') extraRows.push({ label: 'Coagulación', value: get('coagulacion') });
+                    const serieBlanca = document.getElementById('serie_blanca')?.value?.trim();
+                    const seriePlaquetaria = document.getElementById('serie_plaquetaria')?.value?.trim();
+                    const coagulacion = document.getElementById('coagulacion')?.value?.trim();
+                    if (serieBlanca)      extraRows.push({ label: 'Serie blanca',      value: serieBlanca });
+                    if (seriePlaquetaria) extraRows.push({ label: 'Serie plaquetaria', value: seriePlaquetaria });
+                    if (coagulacion)      extraRows.push({ label: 'Coagulación',       value: coagulacion });
                 }
                 if (tituloLower.includes('orina puntual')) { 
-                    if (get('sedimento_urinario') && get('sedimento_urinario') !== '—') extraRows.push({ label: 'Sedimento', value: get('sedimento_urinario') });
+                    const sedimento = document.getElementById('sedimento_urinario')?.value?.trim();
+                    if (sedimento) extraRows.push({ label: 'Sedimento', value: sedimento });
                 }
 
                 const filas = sec.keys.filter(k => R[k] !== undefined && R[k] !== null && R[k] !== 0 && !isNaN(R[k]) && R[k] !== '');
@@ -79,10 +91,10 @@ export function exportToPDF(AppState, rawData = {}) {
                 extraRows.forEach(r => {
                     const textWidthLimit = maxW - (COL_VAL - margin); 
                     const lineas = doc.splitTextToSize(r.value, textWidthLimit);
-                    extraSpace += Math.max(6.5, lineas.length * 4.5 + 2);
+                    extraSpace += Math.max(PDF_CONFIG.rowHeight, lineas.length * PDF_CONFIG.textPadding + 2);
                 });
 
-                checkSpace(15 + filas.length * 6.5 + extraSpace);
+                checkSpace(15 + filas.length * PDF_CONFIG.rowHeight + extraSpace);
 
                 doc.setFillColor(...PDF_PALETTE.TEAL);
                 doc.rect(margin, y, maxW, 7, 'F');
@@ -108,22 +120,22 @@ export function exportToPDF(AppState, rawData = {}) {
                     const p = PARAMETROS[key];
                     let valorTexto = parseFloat(val).toFixed(2) + (p?.unit ? ' ' + p.unit : '');
 
-                    if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, 6.5, 'F'); }
+                    if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, PDF_CONFIG.rowHeight, 'F'); }
                     alt = !alt;
 
                     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.DARK);
-                    doc.text(p?.label || key, margin+3, y+4.5);
+                    doc.text(p?.label || key, margin+3, y+PDF_CONFIG.textPadding);
 
                     doc.setFont('helvetica','bold');
                     doc.setTextColor(...(ev.enRango ? PDF_PALETTE.TEAL : PDF_PALETTE.RED));
-                    doc.text(valorTexto, COL_VAL, y+4.5);
+                    doc.text(valorTexto, COL_VAL, y+PDF_CONFIG.textPadding);
 
                     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...PDF_PALETTE.GREY);
-                    doc.text(ev.rangoTexto || '—', COL_RANG, y+4.5);
+                    doc.text(ev.rangoTexto || '—', COL_RANG, y+PDF_CONFIG.textPadding);
 
                     doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.1);
-                    doc.line(margin, y+6.5, pageW-margin, y+6.5);
-                    y += 6.5;
+                    doc.line(margin, y+PDF_CONFIG.rowHeight, pageW-margin, y+PDF_CONFIG.rowHeight);
+                    y += PDF_CONFIG.rowHeight;
                 });
 
                 // Imprimir las filas extra (Sedimento, etc.) SIN negrita y bien alineadas
@@ -131,19 +143,19 @@ export function exportToPDF(AppState, rawData = {}) {
                     doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
                     const textWidthLimit = maxW - (COL_VAL - margin); 
                     const lineas = doc.splitTextToSize(row.value, textWidthLimit);
-                    const rowH = Math.max(6.5, lineas.length * 4.5 + 2);
+                    const rowH = Math.max(PDF_CONFIG.rowHeight, lineas.length * PDF_CONFIG.textPadding + 2);
                     checkSpace(rowH);
 
                     if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, rowH, 'F'); }
                     alt = !alt;
 
                     doc.setFont('helvetica','normal'); doc.setTextColor(...PDF_PALETTE.DARK);
-                    doc.text(row.label, margin+3, y+4.5);
+                    doc.text(row.label, margin+3, y+PDF_CONFIG.textPadding);
                     
-                    let tempY = y + 4.5;
+                    let tempY = y + PDF_CONFIG.textPadding;
                     lineas.forEach(l => {
                         doc.text(l, COL_VAL, tempY); // Empieza exactamente en la columna "VALOR"
-                        tempY += 4.5;
+                        tempY += PDF_CONFIG.textPadding;
                     });
 
                     doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.1);
@@ -160,7 +172,7 @@ export function exportToPDF(AppState, rawData = {}) {
                 
                 doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
                 const lineas = doc.splitTextToSize(textValue, maxW-4);
-                checkSpace(10 + (lineas.length * 5.5) + 5);
+                checkSpace(10 + (lineas.length * PDF_CONFIG.textLineHeight) + 5);
                 
                 doc.setFillColor(...PDF_PALETTE.TEAL);
                 doc.rect(margin, y, maxW, 7, 'F');
@@ -171,7 +183,7 @@ export function exportToPDF(AppState, rawData = {}) {
                 
                 doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
                 doc.setTextColor(...PDF_PALETTE.DARK);
-                lineas.forEach(l => { checkSpace(6); doc.text(l, margin+2, y); y += 5.5; });
+                lineas.forEach(l => { checkSpace(6); doc.text(l, margin+2, y); y += PDF_CONFIG.textLineHeight; });
                 y += 3;
             };
 
@@ -190,7 +202,7 @@ export function exportToPDF(AppState, rawData = {}) {
                 let arrayDeLineas = [];
                 AppState.valoresFueraRango.forEach(v => { arrayDeLineas = arrayDeLineas.concat(doc.splitTextToSize('• ' + v, maxW - 8)); });
                 
-                const bH = 10 + arrayDeLineas.length * 5.5;
+                const bH = 10 + arrayDeLineas.length * PDF_CONFIG.textLineHeight;
                 checkSpace(bH + 5);
                 
                 doc.setFillColor(...PDF_PALETTE.RED_BG); doc.roundedRect(margin, y, maxW, bH, 2, 2, 'F');
@@ -200,14 +212,14 @@ export function exportToPDF(AppState, rawData = {}) {
                 y += 12;
                 
                 doc.setFont('helvetica','normal'); doc.setFontSize(8);
-                arrayDeLineas.forEach(l => { checkSpace(6); doc.text(l, margin+4, y); y += 5.5; });
+                arrayDeLineas.forEach(l => { checkSpace(6); doc.text(l, margin+4, y); y += PDF_CONFIG.textLineHeight; });
                 y += 4;
             }
 
             // ══ ESTADIFICACIÓN KDIGO ═══════════════════════
             if (AppState.estadificacionKDIGO) {
                 doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                const bH = 10 + AppState.estadificacionKDIGO.items.length * 5.5;
+                const bH = 10 + AppState.estadificacionKDIGO.items.length * PDF_CONFIG.textLineHeight;
                 checkSpace(bH + 5);
 
                 doc.setFillColor(240, 249, 255); 
@@ -226,7 +238,7 @@ export function exportToPDF(AppState, rawData = {}) {
                     doc.text(parts[0] + ':', margin+4, y);
                     doc.setFont('helvetica','normal');
                     doc.text(parts.slice(1).join(':'), margin+4 + doc.getTextWidth(parts[0] + ': '), y);
-                    y += 5.5; 
+                    y += PDF_CONFIG.textLineHeight; 
                 });
                 y += 4;
             }

@@ -14,6 +14,18 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="NefroPed" />
     
+    <!-- Prevención de FOUC (Flash of Unstyled Content) en Modo Oscuro -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('themePref');
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-color-scheme', currentTheme);
+            } catch (e) {}
+        })();
+    </script>
+
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="./fontawesome/css/all.min.css">
     <link rel="manifest" href="manifest.json" />
@@ -92,7 +104,7 @@
                             <label class="form-label" for="fecha_analitica">Fecha de analítica</label>
                             <div class="fecha-wrapper">
                                 <input type="text" id="fecha_analitica" name="fecha_analitica" class="form-control" placeholder="DD/MM/AAAA" maxlength="10" aria-required="true">
-                                <button type="button" class="btn btn-hoy" onclick="rellenarFechaHoy()" aria-label="Establecer fecha de hoy">HOY</button>
+                                <button type="button" class="btn btn-hoy" id="btn-hoy" aria-label="Establecer fecha de hoy">HOY</button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -345,7 +357,7 @@
                             <label class="form-label">Condición anatómica</label>
                             <div style="display: flex; align-items: center; gap: 15px; background: var(--color-bg-1); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--color-border);">
                                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
-                                    <input type="checkbox" id="check_monoreno" aria-describedby="monoreno-hint" onchange="toggleMonoreno(this.checked)" style="width: 16px; height: 16px; accent-color: var(--color-primary);">
+                                    <input type="checkbox" id="check_monoreno" aria-describedby="monoreno-hint" style="width: 16px; height: 16px; accent-color: var(--color-primary);">
                                     Paciente Monoreno
                                 </label>
                                 
@@ -354,10 +366,10 @@
                                     <legend class="sr-only">Riñón presente</legend>
                                     <span aria-hidden="true" style="font-size: 12px; color: var(--color-text-secondary);">Presente:</span>
                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
-                                        <input type="radio" name="radio_rinon_unico" value="izquierdo" onchange="seleccionarRinonUnico('izquierdo')" style="accent-color: var(--color-primary);" checked> Izq
+                                        <input type="radio" name="radio_rinon_unico" value="izquierdo" style="accent-color: var(--color-primary);" checked> Izq
                                     </label>
                                     <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px;">
-                                        <input type="radio" name="radio_rinon_unico" value="derecho" onchange="seleccionarRinonUnico('derecho')" style="accent-color: var(--color-primary);"> Der
+                                        <input type="radio" name="radio_rinon_unico" value="derecho" style="accent-color: var(--color-primary);"> Der
                                     </label>
                                 </fieldset>
                             </div>
@@ -384,10 +396,10 @@
             </button>
             
             <div class="botones-secundarios">
-                <button type="button" class="btn btn-outline-secondary btn-sm btn-limpiar" onclick="confirmarLimpiarFormulario()" aria-label="Borrar todos los datos">
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-limpiar" id="btn-limpiar" aria-label="Borrar todos los datos">
                     Limpiar <i class="fas fa-trash-alt icon-right" aria-hidden="true"></i>
                 </button>
-                <button id="btn-cargar-datos-test" class="btn btn-sm" style="display:none;" onclick="loadSampleData()">
+                <button id="btn-cargar-datos-test" class="btn btn-sm" style="display:none;">
                     Datos de ejemplo <i class="fas fa-vial icon-right" aria-hidden="true"></i>
                 </button>
             </div>
@@ -402,7 +414,7 @@
                 <p>Introduce los parámetros clínicos del paciente en las pestañas superiores y pulsa "Calcular Resultados" para generar el Informe de Pruebas Complementarias.</p>
             </div>
 
-            <div class="results-grid hidden" id="resultsGrid">
+            <div class="results-grid hidden" id="resultsGrid" aria-live="polite">
             </div>
         </section>
 

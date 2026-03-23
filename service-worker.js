@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nefroped-v60'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
+const CACHE_NAME = 'nefroped-v71'; // <--- ACUÉRDATE DE CAMBIAR ESTO AL SUBIR
 
 
 const urlsToCache = [

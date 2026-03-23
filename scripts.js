@@ -66,6 +66,7 @@ function mostrarAvisoActualizacion(worker) {
 // ===============================================
 let fieldIds = [];
 let camposParaContador = [];
+let debounceTimer = null;
 
 const AppState = {
     calculatedResults: {},
@@ -106,6 +107,20 @@ document.addEventListener('DOMContentLoaded', function() {
     setupSecretTap();
     setupThemeToggle(); 
     posicionarDropdownExport(); 
+
+    const checkMonoreno = document.getElementById('check_monoreno');
+    if (checkMonoreno) {
+        checkMonoreno.addEventListener('change', function() {
+            toggleMonoreno(this.checked);
+        });
+    }
+
+    const radiosRinon = document.querySelectorAll('input[name="radio_rinon_unico"]');
+    radiosRinon.forEach(radio => {
+        radio.addEventListener('change', function() {
+            seleccionarRinonUnico(this.value);
+        });
+    });
 
     // Accesibilidad: Ocultar todos los iconos decorativos a los lectores de pantalla
     document.querySelectorAll('i.fas, i.far').forEach(icon => icon.setAttribute('aria-hidden', 'true'));
@@ -288,6 +303,10 @@ function setupAutoSave() {
             data.serie_plaquetaria = document.getElementById('serie_plaquetaria')?.value || '';
             data.coagulacion = document.getElementById('coagulacion')?.value || '';
             
+            // 🛡️ Privacidad (RGPD/HIPAA): Bloqueo proactivo de datos identificativos futuros
+            const SENSITIVE_FIELDS = ['nombre', 'paciente', 'apellidos', 'nhc', 'historia', 'dni', 'identificador'];
+            SENSITIVE_FIELDS.forEach(field => delete data[field]);
+
             // Guarda todo en sessionStorage usando la constante
             sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
         });
@@ -523,7 +542,11 @@ function setupFormEvents() {
         if (input) {
             input.addEventListener('input', (e) => { 
                 updateFieldCounter(); 
-                actualizarMarcadoresEnTiempoReal(); 
+                
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    actualizarMarcadoresEnTiempoReal();
+                }, 300);
                 
                 if(e.target.value.trim() !== '') {
                     e.target.classList.add('campo-valido');
@@ -552,6 +575,16 @@ function setupButtons() {
     
     const printButton = document.getElementById('printButton');
     if (printButton) printButton.addEventListener('click', printReport);
+
+    const btnHoy = document.getElementById('btn-hoy');
+    if (btnHoy) btnHoy.addEventListener('click', rellenarFechaHoy);
+    
+    const btnLimpiar = document.getElementById('btn-limpiar');
+    if (btnLimpiar) btnLimpiar.addEventListener('click', confirmarLimpiarFormulario);
+    
+    const btnTest = document.getElementById('btn-cargar-datos-test');
+    if (btnTest) btnTest.addEventListener('click', loadSampleData);
+
     const btnAcercaDe = document.getElementById('btn-acerca-de');
     if (btnAcercaDe) {
         btnAcercaDe.addEventListener('click', () => {
@@ -973,11 +1006,11 @@ function generateReport(data) {
     if (isValid(data.creatinina_enz_mg_dl)) {
         let cr = `Cr: ${fmt(data.creatinina_enz_mg_dl)}mg/dL`;
         [
-            fmtParam('schwartzneo',     results.schwartz_neo),
-            fmtParam('schwartzlact',    results.schwartz_lact),
-            fmtParam('schwartzbedside', results.schwartz_bedside),
-            fmtParam('ckidu25cr',       results.ckid_u25_cr),
-            fmtParam('ekfccr',          results.ekfc_cr),
+            fmtParam('eGFR-Smeets',     results.schwartz_neo),
+            fmtParam('eGFR Schwartz lactante',    results.schwartz_lact),
+            fmtParam('eGFR Schwartz Bedside', results.schwartz_bedside),
+            fmtParam('CKiD U25 cr',       results.ckid_u25_cr),
+            fmtParam('EKFCCr',          results.ekfc_cr),
         ].filter(Boolean).forEach(l => cr += ` (${l})`);
         hidrosalino.push(cr);
     }
@@ -985,14 +1018,14 @@ function generateReport(data) {
     if (isValid(data.cistatina_c_mg_l)) {
         let cist = `Cistatina C: ${fmt(data.cistatina_c_mg_l)}mg/L`;
         [
-            fmtParam('bokenkamp',    results.bokenkamp),
-            fmtParam('ckidu25cistc', results.ckid_u25_cistc),
-            fmtParam('ekfccistc',    results.ekfc_cistc),
+            fmtParam('Bokenkamp',    results.bokenkamp),
+            fmtParam('CKiD U25 CistC', results.ckid_u25_cistc),
+            fmtParam('EKFCCistC',    results.ekfc_cistc),
         ].filter(Boolean).forEach(l => cist += ` (${l})`);
         hidrosalino.push(cist);
     }
 
-    const combinadoLine = fmtParam('ckidu25combinado', results.ckid_u25_combinado);
+    const combinadoLine = fmtParam('cCKiD U25 combinado', results.ckid_u25_combinado);
     if (combinadoLine) hidrosalino.push(`(${combinadoLine})`);
 
     const vpLine = fmtParam('vpercent', results.vpercent);
@@ -1177,7 +1210,7 @@ function generateReport(data) {
         }
     } else {
         let grados_lactante = [];
-        if (isValid(results.schwartz_neo))       grados_lactante.push(`- eGFR Schwartz neonatal: ${evaluarERC_Lactante(results.schwartz_neo, mesesTotales)}`);
+        if (isValid(results.schwartz_neo))       grados_lactante.push(`- eGFR-Smeets: ${evaluarERC_Lactante(results.schwartz_neo, mesesTotales)}`);
         if (isValid(results.schwartz_lact))      grados_lactante.push(`- eGFR Schwartz lactante: ${evaluarERC_Lactante(results.schwartz_lact, mesesTotales)}`);
         if (isValid(results.schwartz_bedside))   grados_lactante.push(`- eGFR Schwartz Bedside: ${evaluarERC_Lactante(results.schwartz_bedside, mesesTotales)}`);
         if (isValid(results.ckid_u25_cr))        grados_lactante.push(`- eGFR CKiD U25 Cr: ${evaluarERC_Lactante(results.ckid_u25_cr, mesesTotales)}`);
@@ -1304,12 +1337,16 @@ function buildReportHTML() {
         const tituloLower = sec.titulo.toLowerCase();
         
         if (tituloLower.includes('hematolog')) { 
-            if (get('serie_blanca') && get('serie_blanca') !== '—') extraRows.push({ label: 'Serie blanca', value: get('serie_blanca') });
-            if (get('serie_plaquetaria') && get('serie_plaquetaria') !== '—') extraRows.push({ label: 'Serie plaquetaria', value: get('serie_plaquetaria') });
-            if (get('coagulacion') && get('coagulacion') !== '—') extraRows.push({ label: 'Coagulación', value: get('coagulacion') });
+            const serieBlanca = document.getElementById('serie_blanca')?.value?.trim();
+            const seriePlaquetaria = document.getElementById('serie_plaquetaria')?.value?.trim();
+            const coagulacion = document.getElementById('coagulacion')?.value?.trim();
+            if (serieBlanca)      extraRows.push({ label: 'Serie blanca',      value: serieBlanca });
+            if (seriePlaquetaria) extraRows.push({ label: 'Serie plaquetaria', value: seriePlaquetaria });
+            if (coagulacion)      extraRows.push({ label: 'Coagulación',       value: coagulacion });
         }
         if (tituloLower.includes('orina puntual')) { 
-            if (get('sedimento_urinario') && get('sedimento_urinario') !== '—') extraRows.push({ label: 'Sedimento', value: get('sedimento_urinario') });
+            const sedimento = document.getElementById('sedimento_urinario')?.value?.trim();
+            if (sedimento) extraRows.push({ label: 'Sedimento', value: sedimento });
         }
 
         const filas = sec.keys.filter(k => R[k] !== undefined && R[k] !== null && R[k] !== 0 && !isNaN(R[k]) && R[k] !== '');
@@ -1356,7 +1393,7 @@ function buildReportHTML() {
             const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
             t += `
           <tr style="background:${bg};">
-            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${row.label}</td>
+            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${escapeHTML(row.label)}</td>
             <td colspan="2" style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;white-space:pre-wrap;">${escapeHTML(row.value)}</td>
           </tr>`;
             i++;
@@ -1746,10 +1783,3 @@ function generarResultadoEcografia() {
     return htmlOut;
 
 }
-
-// Exponer funciones globales requeridas por los atributos onclick/onchange del index.html
-window.loadSampleData = loadSampleData;
-window.confirmarLimpiarFormulario = confirmarLimpiarFormulario;
-window.toggleMonoreno = toggleMonoreno;
-window.seleccionarRinonUnico = seleccionarRinonUnico;
-window.rellenarFechaHoy = rellenarFechaHoy;

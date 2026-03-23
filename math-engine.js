@@ -87,18 +87,18 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
     let ckid_u25_cr = 0, ckid_u25_cistc = 0, ckid_u25_combinado = 0;
 
     if (diasVida >= 0 && diasVida <= 28) {
-        if (cr && talla) schwartz_neo = 0.31 * (talla / cr);
-        if (cistC) bokenkamp = 100 * (0.83 / cistC);
+        if (cr > 0 && talla > 0) schwartz_neo = 0.31 * (talla / cr);
+        if (cistC > 0) bokenkamp = 100 * (0.83 / cistC);
     } else if (diasVida >= 29 && diasVida < 365) {
-        if (cr && talla) schwartz_lact = 0.34 * (talla / cr);
-        if (cistC) bokenkamp = 100 * (0.83 / cistC);
+        if (cr > 0 && talla > 0) schwartz_lact = 0.34 * (talla / cr);
+        if (cistC > 0) bokenkamp = 100 * (0.83 / cistC);
         let k_cr_lactante = (sexo === 'M') ? 39.0 * Math.pow(1.008, 1 - 12) : 36.1 * Math.pow(1.008, 1 - 12);
         if (cr > 0 && talla_m > 0) ckid_u25_cr = k_cr_lactante * (talla_m / cr);
         let k_cist_lactante = (sexo === 'M') ? 87.2 * Math.pow(1.011, 1 - 15) : 79.9 * Math.pow(1.004, 1 - 12);
         if (cistC > 0) ckid_u25_cistc = k_cist_lactante * (1 / cistC);
         if (ckid_u25_cr > 0 && ckid_u25_cistc > 0) ckid_u25_combinado = (ckid_u25_cr + ckid_u25_cistc) / 2;
     } else if (diasVida >= 365 && edadExacta <= 25) {
-        if (cr && talla && edadExacta < 16) schwartz_bedside = 0.413 * (talla / cr);
+        if (cr > 0 && talla > 0 && edadExacta < 16) schwartz_bedside = 0.413 * (talla / cr);
         let k_cr = 0;
         if (edadExacta >= 1 && edadExacta < 12) k_cr = (sexo === 'M') ? 39.0 * Math.pow(1.008, edadExacta - 12) : 36.1 * Math.pow(1.008, edadExacta - 12);
         else if (edadExacta >= 12 && edadExacta < 18) k_cr = (sexo === 'M') ? 39.0 * Math.pow(1.045, edadExacta - 12) : 36.1 * Math.pow(1.023, edadExacta - 12);
@@ -113,7 +113,7 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
         if (k_cist > 0 && cistC > 0) ckid_u25_cistc = k_cist * (1 / cistC);
         if (ckid_u25_cr > 0 && ckid_u25_cistc > 0) ckid_u25_combinado = (ckid_u25_cr + ckid_u25_cistc) / 2;
 
-        if (cr && edadExacta >= 2) {
+        if (cr > 0 && edadExacta >= 2) {
             let Q_cr = 0;
             if (edadExacta <= 25) {
                 let lnQ_umol = (sexo === 'M' || sexo === 'Hombre') ? 3.200 + (0.259 * edadExacta) - (0.543 * Math.log(edadExacta)) - (0.00763 * Math.pow(edadExacta, 2)) + (0.0000790 * Math.pow(edadExacta, 3)) : 3.080 + (0.177 * edadExacta) - (0.223 * Math.log(edadExacta)) - (0.00596 * Math.pow(edadExacta, 2)) + (0.0000686 * Math.pow(edadExacta, 3));
@@ -125,7 +125,7 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
             const alphaCr = ratioCr <= 1 ? -0.322 : -1.132;
             ekfc_cr = 107.3 * Math.pow(ratioCr, alphaCr) * Math.pow(0.990, (edadExacta > 40 ? edadExacta - 40 : 0));
         }
-        if (cistC && edadExacta >= 2) {
+        if (cistC > 0 && edadExacta >= 2) {
             const Q_cistC = 0.83;
             const ratioCistC = cistC / Q_cistC;
             const alphaCistC = ratioCistC <= 1 ? -0.322 : -1.132;
@@ -133,10 +133,10 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
         }
     }
 
-    const efNa = (data.na_plasma_meq_l && data.creatinina_orina_mg_dl && data.na_orina_meq_l && data.creatinina_enz_mg_dl) ? (data.na_orina_meq_l * data.creatinina_enz_mg_dl) / (data.na_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
-    const efK = (data.k_plasma_meq_l && data.creatinina_orina_mg_dl && data.k_orina_meq_l && data.creatinina_enz_mg_dl) ? (data.k_orina_meq_l * data.creatinina_enz_mg_dl) / (data.k_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
-    const efCl = (data.cl_plasma_meq_l && data.creatinina_orina_mg_dl && data.cl_orina_meq_l && data.creatinina_enz_mg_dl) ? (data.cl_orina_meq_l * data.creatinina_enz_mg_dl) / (data.cl_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
-    const efAU = (data.au_plasma_mg_dl && data.creatinina_orina_mg_dl && data.au_orina_mg_dl && data.creatinina_enz_mg_dl) ? (data.au_orina_mg_dl * data.creatinina_enz_mg_dl) / (data.au_plasma_mg_dl * data.creatinina_orina_mg_dl) * 100 : 0;
+    const efNa = (data.na_plasma_meq_l > 0 && data.creatinina_orina_mg_dl > 0 && data.na_orina_meq_l > 0 && data.creatinina_enz_mg_dl > 0) ? (data.na_orina_meq_l * data.creatinina_enz_mg_dl) / (data.na_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
+    const efK = (data.k_plasma_meq_l > 0 && data.creatinina_orina_mg_dl > 0 && data.k_orina_meq_l > 0 && data.creatinina_enz_mg_dl > 0) ? (data.k_orina_meq_l * data.creatinina_enz_mg_dl) / (data.k_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
+    const efCl = (data.cl_plasma_meq_l > 0 && data.creatinina_orina_mg_dl > 0 && data.cl_orina_meq_l > 0 && data.creatinina_enz_mg_dl > 0) ? (data.cl_orina_meq_l * data.creatinina_enz_mg_dl) / (data.cl_plasma_meq_l * data.creatinina_orina_mg_dl) * 100 : 0;
+    const efAU = (data.au_plasma_mg_dl > 0 && data.creatinina_orina_mg_dl > 0 && data.au_orina_mg_dl > 0 && data.creatinina_enz_mg_dl > 0) ? (data.au_orina_mg_dl * data.creatinina_enz_mg_dl) / (data.au_plasma_mg_dl * data.creatinina_orina_mg_dl) * 100 : 0;
     const cacr = data.creatinina_orina_mg_dl > 0 ? data.ca_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
     const mgcr = data.creatinina_orina_mg_dl > 0 ? data.magnesio_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
     const pcr = data.creatinina_orina_mg_dl > 0 ? data.fosforo_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
@@ -147,7 +147,7 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
     const oxalatocr = data.creatinina_orina_mg_dl > 0 ? data.oxalato_orina_mg_dl / data.creatinina_orina_mg_dl : 0;
     const nak = data.k_orina_meq_l > 0 ? data.na_orina_meq_l / data.k_orina_meq_l : 0;
     const cacitrato = data.citrato_orina_mg_dl > 0 ? data.ca_orina_mg_dl / data.citrato_orina_mg_dl : 0;
-    const rtp = (data.p_plasma_mg_dl && data.fosforo_orina_mg_dl && data.creatinina_orina_mg_dl && data.creatinina_enz_mg_dl) ? 100 - ((data.fosforo_orina_mg_dl * data.creatinina_enz_mg_dl) / (data.p_plasma_mg_dl * data.creatinina_orina_mg_dl)) * 100 : 0;
+    const rtp = (data.p_plasma_mg_dl > 0 && data.fosforo_orina_mg_dl > 0 && data.creatinina_orina_mg_dl > 0 && data.creatinina_enz_mg_dl > 0) ? 100 - ((data.fosforo_orina_mg_dl * data.creatinina_enz_mg_dl) / (data.p_plasma_mg_dl * data.creatinina_orina_mg_dl)) * 100 : 0;
     const uricosuria = superficieCorporal > 0 ? (data.au_24h_mg / superficieCorporal) * 1.73 : 0;
     const calciuria = data.peso_kg > 0 ? data.ca_24h_mg / data.peso_kg : 0;
     const citraturia = data.peso_kg > 0 ? data.citrato_24h_mg / data.peso_kg : 0;

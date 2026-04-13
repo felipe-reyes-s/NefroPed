@@ -2,6 +2,9 @@
 
 **Calculadora Clínica Avanzada de Nefrología Pediátrica** 🌐 [Visitar la aplicación: nefroped.es](https://nefroped.es)
 
+![Captura de pantalla de NefroPed Modo Claro](./screenshot-mobile-1.png)
+*(Captura de la interfaz principal de la aplicación)*
+
 NefroPed es una Aplicación Web Progresiva (PWA) diseñada específicamente para profesionales sanitarios en el ámbito de la nefrología pediátrica. Permite realizar cálculos clínicos complejos, estadificaciones y fórmulas de forma rápida, segura y adaptada al entorno hospitalario.
 
 ## ✨ Características Principales
@@ -12,11 +15,24 @@ NefroPed es una Aplicación Web Progresiva (PWA) diseñada específicamente para
 * **📋 Integración en Historia Clínica:** Generación automática de informes médicos con formato limpio. Incluye exportación a PDF, Word (.docx) y copiado directo al portapapeles en un clic para pegar en aplicaciones oficiales de salud.
 * **🎨 Interfaz UI/UX Moderna:** Diseño aséptico, simétrico, con soporte nativo para Modo Claro/Oscuro y adaptabilidad total (Responsive Design).
 
+![Captura de pantalla de NefroPed Modo Oscuro](./screenshot-mobile-2.png)
+*(Soporte nativo para Modo Oscuro, ideal para guardias nocturnas)*
+
 ## 🛠️ Stack Tecnológico
 
 * **Frontend:** HTML5, CSS3 (Variables nativas, CSS Grid, Flexbox), JavaScript (Vanilla ES6+).
-* **Librerías externas:** SweetAlert2 (Alertas UI), FontAwesome (Iconografía).
+* **Librerías externas:** SweetAlert2 (UI), FontAwesome (Iconos), jsPDF (Exportación a PDF), FileSaver.js y DOMPurify (Seguridad).
 * **Arquitectura:** Static Web App / PWA (Service Workers, Manifest).
+
+## 🚀 Instalación y Despliegue Local
+
+Al ser una aplicación 100% estática (Client-side), no requiere de bases de datos ni servidores complejos:
+
+1. Clona o descarga este repositorio.
+2. Abre la carpeta del proyecto.
+3. Lanza un servidor local (por ejemplo, con la extensión *Live Server* de VSCode o con Python: `python -m http.server 8000`).
+4. Abre `http://localhost:8000` en tu navegador.
+*(Nota: El Service Worker para la funcionalidad offline requiere ejecutarse bajo HTTPS o en localhost).*
 
 ## 👨‍⚕️ Autores y Dirección
 

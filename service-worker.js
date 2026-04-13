@@ -6,6 +6,7 @@ const urlsToCache = [
   './index.html',
   './styles.css',
   './scripts.js',
+  './report-generator.js',
   './libs/sweetalert2.js',
   './libs/jspdf.js',
   './libs/filesaver.js',

@@ -65,6 +65,18 @@ export function evaluarRango(parametro, valor, edad, edadMeses) {
     return { enRango, tipo, rangoTexto };
 }
 
+/**
+ * Motor principal de cálculos médicos de NefroPed.
+ * 📚 REFERENCIAS CLÍNICAS Y DOIs:
+ * - Schwartz Bedside (2009): eGFR = 0.413 * (Talla / Cr). DOI: 10.2215/CJN.02300408
+ * - CKiD U25 (Pierce et al., 2021): Función combinada Cr y Cistatina para <25 años. DOI: 10.1053/j.ajkd.2020.10.016
+ * - EKFC (Pottel et al., 2021): European Kidney Function Consortium. DOI: 10.7326/M20-4366
+ * - Bökenkamp (1998): Estimación basada en Cistatina C. DOI: 10.1007/s004670050419
+ * 
+ * @param {Object} data - Diccionario con los inputs crudos del paciente.
+ * @param {number} edadAnos - Edad en años cronológicos.
+ * @param {number} edadMeses - Restante de meses.
+ */
 export function performMedicalCalculations(data, edadAnos, edadMeses) {
     const superficieCorporal = Math.sqrt(data.peso_kg * data.talla_cm / 3600);
     const imc = data.peso_kg > 0 && data.talla_cm > 0 ? data.peso_kg / Math.pow(data.talla_cm / 100, 2) : 0;
@@ -170,6 +182,11 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
     };
 }
 
+/**
+ * Tablas L, M, S de Obrycki para percentiles de longitud renal ecográfica.
+ * Implementa la transformación matemática Box-Cox para distribuciones asimétricas.
+ * 📚 Fuente: Obrycki et al. (2017) - DOI: 10.1007/s00467-016-3507-6
+ */
 export const obryckiLMS = [
     { min: 0, max: 54.9, L: 0.567, M: 50.4, S: 0.0844 }, { min: 55, max: 59.9, L: 0.532, M: 52.9, S: 0.0836 },
     { min: 60, max: 64.9, L: 0.498, M: 55.4, S: 0.0828 }, { min: 65, max: 69.9, L: 0.458, M: 58.3, S: 0.0820 },

@@ -317,57 +317,60 @@ h4 { font-size: var(--font-size-xl); }
   font-family: var(--font-family-base);
   user-select: text; cursor: text;
 }
-.form-control:focus { border-color: var(--color-primary) !important; box-shadow: 0 0 0 3px var(--color-focus-ring) !important; outline: none; transform: translateY(-1px); }
-.form-control:hover { border-color: var(--color-primary-hover); }
+/* Aumentamos la especificidad añadiendo la etiqueta (input, select, textarea) para evitar !important */
+input.form-control:focus, select.form-control:focus, textarea.form-control:focus { 
+    border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-focus-ring); outline: none; transform: translateY(-1px); 
+}
+input.form-control:hover, select.form-control:hover, textarea.form-control:hover { border-color: var(--color-primary-hover); }
 
 /* Modo Oscuro: Inputs */
-[data-color-scheme="dark"] .form-control, [data-color-scheme="dark"] textarea.form-control {
-    background-color: #1e293b; border-color: #475569; color: #f1f5f9 !important;
+[data-color-scheme="dark"] input.form-control, [data-color-scheme="dark"] select.form-control, [data-color-scheme="dark"] textarea.form-control {
+    background-color: #1e293b; border-color: #475569; color: #f1f5f9;
 }
-[data-color-scheme="dark"] .form-control:focus { background-color: #0f172a; border-color: var(--color-primary) !important; }
+[data-color-scheme="dark"] input.form-control:focus, [data-color-scheme="dark"] select.form-control:focus, [data-color-scheme="dark"] textarea.form-control:focus { background-color: #0f172a; border-color: var(--color-primary); }
 
 /* Validaciones Visuales */
-.form-control.campo-valido { border-color: var(--color-primary) !important; background-color: transparent; box-shadow: 0 0 0 1px var(--color-primary) inset; transition: all 0.3s ease; }
-.form-control.campo-error { border-color: var(--color-error) !important; box-shadow: 0 0 0 1px var(--color-error) inset; }
+input.form-control.campo-valido, select.form-control.campo-valido, textarea.form-control.campo-valido { border-color: var(--color-primary); background-color: transparent; box-shadow: 0 0 0 1px var(--color-primary) inset; transition: all 0.3s ease; }
+input.form-control.campo-error, select.form-control.campo-error, textarea.form-control.campo-error { border-color: var(--color-error); box-shadow: 0 0 0 1px var(--color-error) inset; }
 
 /* ==========================================================================
    ESTILOS ESPECÍFICOS PARA TEXTAREA (Nutrición, Sedimento, Ecografía)
    ========================================================================== */
-textarea.form-control {
-    width: 100% !important;
-    height: 42px !important;
+form textarea.form-control {
+    width: 100%;
+    height: 42px;
     min-height: 42px;
-    box-sizing: border-box !important; 
+    box-sizing: border-box; 
     
     overflow: hidden;
     resize: none;
     
-    white-space: normal !important; 
-    word-break: break-all !important; 
+    white-space: normal; 
+    word-break: break-all; 
     
     /* EL TRUCO DEFINITIVO: 
        Hacemos que el renglón mida exactamente lo mismo que la caja (42px).
        El texto quedará centrado verticalmente por arte de magia, y la 2ª línea
        empezará en el píxel 43, quedando decapitada y 100% invisible. */
-    line-height: 42px !important;
-    padding-top: 0px !important;
-    padding-bottom: 0px !important;
+    line-height: 42px;
+    padding-top: 0px;
+    padding-bottom: 0px;
     
-    padding-left: 12px !important; 
-    padding-right: 12px !important; 
+    padding-left: 12px; 
+    padding-right: 12px; 
 }
 
-textarea.form-control:focus {
-    height: 150px !important;
+form textarea.form-control:focus {
+    height: 150px;
     min-height: 150px;
     
     /* Al hacer clic, devolvemos el texto a su tamaño y márgenes normales */
-    line-height: 1.5 !important;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    line-height: 1.5;
+    padding-top: 10px;
+    padding-bottom: 10px;
     
-    white-space: normal !important;
-    word-break: normal !important; 
+    white-space: normal;
+    word-break: normal; 
     
     overflow-y: auto;
     overflow-x: hidden;
@@ -375,16 +378,16 @@ textarea.form-control:focus {
     z-index: 10;
     position: relative;
     
-    padding-left: 12px !important;
-    padding-right: 12px !important; 
+    padding-left: 12px;
+    padding-right: 12px; 
 }
 
 /* Campos especiales (Spinners y Edad) */
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; display: none; }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
-#edad_calculada, .input-bloqueado { background-color: #f1f5f9 !important; color: #475569 !important; border-color: #cbd5e1 !important; cursor: not-allowed; font-weight: 500; }
-[data-color-scheme="dark"] #edad_calculada, [data-color-scheme="dark"] .input-bloqueado { background-color: #0f172a !important; color: #94a3b8 !important; border-color: #334155 !important; box-shadow: none; }
+input#edad_calculada, input.input-bloqueado { background-color: #f1f5f9; color: #475569; border-color: #cbd5e1; cursor: not-allowed; font-weight: 500; }
+[data-color-scheme="dark"] input#edad_calculada, [data-color-scheme="dark"] input.input-bloqueado { background-color: #0f172a; color: #94a3b8; border-color: #334155; box-shadow: none; }
 
 .input-unit-wrapper { cursor: text; }
 
@@ -426,54 +429,54 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 .botones-secundarios { display: flex; gap: var(--space-12); justify-content: center; flex-wrap: wrap; }
 
-.btn-limpiar { 
+.botones-secundarios .btn-limpiar { 
   font-size: var(--font-size-base); padding: var(--space-8) var(--space-16); 
-  background-color: #ffffff !important; color: var(--color-primary) !important; 
-  border: 1px solid var(--color-primary) !important; font-weight: 500; 
+  background-color: #ffffff; color: var(--color-primary); 
+  border: 1px solid var(--color-primary); font-weight: 500; 
   min-height: 40px;  /* ✅ R3: botón Limpiar */
 }
-.btn-limpiar:hover { background-color: var(--color-bg-1) !important; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: translateY(-1px); }
-[data-color-scheme="dark"] .btn-limpiar { background-color: transparent !important; }
+.botones-secundarios .btn-limpiar:hover { background-color: var(--color-bg-1); box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: translateY(-1px); }
+[data-color-scheme="dark"] .botones-secundarios .btn-limpiar { background-color: transparent; }
 
-#btn-cargar-datos-test { 
+.botones-secundarios #btn-cargar-datos-test { 
   font-size: var(--font-size-sm); padding: var(--space-8) var(--space-16); 
   background-color: #f8fafc; border: 1px solid var(--color-border); 
   color: var(--color-text-secondary); border-radius: var(--radius-base); 
   font-weight: 500; margin-left: 10px; 
   min-height: 40px;  /* ✅ R3: botón Datos Test */
 }
-#btn-cargar-datos-test:hover { background-color: #e2e8f0; color: var(--color-text); border-color: var(--color-text); }
-[data-color-scheme="dark"] #btn-cargar-datos-test { background-color: #1e293b !important; border-color: #475569 !important; color: #94a3b8 !important; }
-[data-color-scheme="dark"] #btn-cargar-datos-test:hover { background-color: #334155 !important; color: #f1f5f9 !important; border-color: #f1f5f9 !important; }
+.botones-secundarios #btn-cargar-datos-test:hover { background-color: #e2e8f0; color: var(--color-text); border-color: var(--color-text); }
+[data-color-scheme="dark"] .botones-secundarios #btn-cargar-datos-test { background-color: #1e293b; border-color: #475569; color: #94a3b8; }
+[data-color-scheme="dark"] .botones-secundarios #btn-cargar-datos-test:hover { background-color: #334155; color: #f1f5f9; border-color: #f1f5f9; }
 
-#btn-hoy, .btn-hoy { 
-    font-size: 14px !important; 
-    padding: 6px 0 !important; 
-    width: 90px !important; 
-    border-radius: 8px !important; 
-    background-color: #f1f5f9 !important; 
-    color: #475569 !important; 
-    border: 1px solid #cbd5e1 !important; 
+.fecha-wrapper .btn-hoy { 
+    font-size: 14px; 
+    padding: 6px 0; 
+    width: 90px; 
+    border-radius: 8px; 
+    background-color: #f1f5f9; 
+    color: #475569; 
+    border: 1px solid #cbd5e1; 
     box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
-    transition: all 0.2s ease !important; /* Magia para el movimiento suave */
+    transition: all 0.2s ease; /* Magia para el movimiento suave */
     cursor: pointer;
-    min-height: 40px !important;  /* ✅ R3: botón HOY */
+    min-height: 40px;  /* ✅ R3: botón HOY */
 }
-#btn-hoy:hover, .btn-hoy:hover { 
-    border-color: var(--color-primary) !important; 
-    color: var(--color-primary) !important; 
-    background-color: var(--color-bg-1) !important; /* Le ponemos el fondito azul */
-    transform: translateY(-2px) !important; /* Efecto flotar */
-    box-shadow: 0 4px 8px rgba(8, 145, 178, 0.15) !important; /* Sombra azulada elegante */
+.fecha-wrapper .btn-hoy:hover { 
+    border-color: var(--color-primary); 
+    color: var(--color-primary); 
+    background-color: var(--color-bg-1); /* Le ponemos el fondito azul */
+    transform: translateY(-2px); /* Efecto flotar */
+    box-shadow: 0 4px 8px rgba(8, 145, 178, 0.15); /* Sombra azulada elegante */
 }
-#btn-hoy:active, .btn-hoy:active {
-    transform: translateY(0) !important; /* Efecto pulsación real */
+.fecha-wrapper .btn-hoy:active {
+    transform: translateY(0); /* Efecto pulsación real */
 }
-[data-color-scheme="dark"] #btn-hoy { background-color: rgba(34, 211, 238, 0.15) !important; color: var(--color-primary) !important; border-color: var(--color-primary) !important; font-weight: 600 !important; }
-[data-color-scheme="dark"] #btn-hoy:hover { background-color: var(--color-primary) !important; color: #0f172a !important; box-shadow: 0 0 10px rgba(34, 211, 238, 0.4); }
+[data-color-scheme="dark"] .fecha-wrapper .btn-hoy { background-color: rgba(34, 211, 238, 0.15); color: var(--color-primary); border-color: var(--color-primary); font-weight: 600; }
+[data-color-scheme="dark"] .fecha-wrapper .btn-hoy:hover { background-color: var(--color-primary); color: #0f172a; box-shadow: 0 0 10px rgba(34, 211, 238, 0.4); }
 
-#copyClipboardButton { background-color: var(--color-primary) !important; color: var(--color-btn-primary-text) !important; opacity: 1 !important; }
-#copyClipboardButton:hover { background-color: var(--color-primary-hover) !important; }
+.export-options #copyClipboardButton { background-color: var(--color-primary); color: var(--color-btn-primary-text); opacity: 1; }
+.export-options #copyClipboardButton:hover { background-color: var(--color-primary-hover); }
 
 .btn-theme-footer { 
   background: transparent; border: 1px solid var(--color-border); 
@@ -527,22 +530,22 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 /* ============================================
    DISEÑO PREMIUM: RESULTADOS MODO OSCURO
    ============================================ */
-[data-color-scheme="dark"] .result-item { 
-    background: linear-gradient(145deg, #1e293b, #0f172a) !important; 
-    border: 1px solid #334155 !important; 
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
-    border-radius: 12px !important;
-    transition: all 0.3s ease !important;
+[data-color-scheme="dark"] #resultsGrid .result-item { 
+    background: linear-gradient(145deg, #1e293b, #0f172a); 
+    border: 1px solid #334155; 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    transition: all 0.3s ease;
 }
 
-[data-color-scheme="dark"] .result-item:hover { 
-    border-color: var(--color-primary) !important; 
-    box-shadow: 0 0 15px rgba(34, 211, 238, 0.15) !important; /* Brillo cyan muy elegante */
-    transform: translateY(-2px) !important; 
+[data-color-scheme="dark"] #resultsGrid .result-item:hover { 
+    border-color: var(--color-primary); 
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.15); /* Brillo cyan muy elegante */
+    transform: translateY(-2px); 
 }
 
-[data-color-scheme="dark"] .result-label { 
-    color: #cbd5e1 !important; /* Gris claro muy nítido para leer bien */
+[data-color-scheme="dark"] #resultsGrid .result-label { 
+    color: #cbd5e1; /* Gris claro muy nítido para leer bien */
     font-weight: 500;
 }
 

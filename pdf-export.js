@@ -156,6 +156,7 @@ export function exportToPDF(AppState, rawData = {}) {
                     doc.setFont('helvetica','normal'); doc.setTextColor(...PDF_PALETTE.DARK);
                     doc.text(row.label, margin+3, y+PDF_CONFIG.textPadding);
                     
+                    doc.setFont('helvetica','bold'); doc.setTextColor(...PDF_PALETTE.TEAL);
                     let tempY = y + PDF_CONFIG.textPadding;
                     lineas.forEach(l => {
                         doc.text(l, COL_VAL, tempY); // Empieza exactamente en la columna "VALOR"
@@ -188,8 +189,8 @@ export function exportToPDF(AppState, rawData = {}) {
                 doc.text(titulo, margin+3, y+5);
                 y += 11;
                 
-                doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                doc.setTextColor(...PDF_PALETTE.DARK);
+                doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+                doc.setTextColor(...PDF_PALETTE.TEAL);
                 lineas.forEach(l => { checkSpace(6); doc.text(l, margin+2, y); y += PDF_CONFIG.textLineHeight; });
                 y += 3;
             };
@@ -200,7 +201,7 @@ export function exportToPDF(AppState, rawData = {}) {
             drawTextBlock('Otros', get('comentario_nutricional'));
             
             if (AppState.ecografiaReportText) {
-                drawTextBlock('Ecografía renal', AppState.ecografiaReportText.replace(/^-/, '').trim());
+                drawTextBlock('Ecografía renal', '· ' + AppState.ecografiaReportText.replace(/^-/, '').trim());
             }
             
             // ══ ESTADIFICACIÓN KDIGO ═══════════════════════

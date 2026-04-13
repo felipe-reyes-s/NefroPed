@@ -124,7 +124,10 @@ export function exportToPDF(AppState, rawData = {}) {
                     alt = !alt;
 
                     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.DARK);
+                    const isGFR = (p?.label || '').includes('eGFR');
+                    if (isGFR) doc.setFont('helvetica', 'italic');
                     doc.text(p?.label || key, margin+3, y+PDF_CONFIG.textPadding);
+                    if (isGFR) doc.setFont('helvetica', 'normal');
 
                     doc.setFont('helvetica','bold');
                     doc.setTextColor(...(ev.enRango ? PDF_PALETTE.TEAL : PDF_PALETTE.RED));

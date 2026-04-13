@@ -1006,11 +1006,11 @@ function generateReport(data) {
     if (isValid(data.creatinina_enz_mg_dl)) {
         let cr = `Cr: ${fmt(data.creatinina_enz_mg_dl)}mg/dL`;
         [
-            fmtParam('eGFR-Smeets',     results.schwartz_neo),
-            fmtParam('eGFR Schwartz lactante',    results.schwartz_lact),
-            fmtParam('eGFR Schwartz Bedside', results.schwartz_bedside),
-            fmtParam('CKiD U25 cr',       results.ckid_u25_cr),
-            fmtParam('EKFCCr',          results.ekfc_cr),
+            fmtParam('schwartz_neo',     results.schwartz_neo),
+            fmtParam('schwartz_lact',    results.schwartz_lact),
+            fmtParam('schwartz_bedside', results.schwartz_bedside),
+            fmtParam('ckid_u25_cr',       results.ckid_u25_cr),
+            fmtParam('ekfc_cr',          results.ekfc_cr),
         ].filter(Boolean).forEach(l => cr += ` (${l})`);
         hidrosalino.push(cr);
     }
@@ -1018,14 +1018,14 @@ function generateReport(data) {
     if (isValid(data.cistatina_c_mg_l)) {
         let cist = `Cistatina C: ${fmt(data.cistatina_c_mg_l)}mg/L`;
         [
-            fmtParam('Bokenkamp',    results.bokenkamp),
-            fmtParam('CKiD U25 CistC', results.ckid_u25_cistc),
-            fmtParam('EKFCCistC',    results.ekfc_cistc),
+            fmtParam('bokenkamp',    results.bokenkamp),
+            fmtParam('ckid_u25_cistc', results.ckid_u25_cistc),
+            fmtParam('ekfc_cistc',    results.ekfc_cistc),
         ].filter(Boolean).forEach(l => cist += ` (${l})`);
         hidrosalino.push(cist);
     }
 
-    const combinadoLine = fmtParam('cCKiD U25 combinado', results.ckid_u25_combinado);
+    const combinadoLine = fmtParam('ckid_u25_combinado', results.ckid_u25_combinado);
     if (combinadoLine) hidrosalino.push(`(${combinadoLine})`);
 
     const vpLine = fmtParam('vpercent', results.vpercent);
@@ -1094,30 +1094,18 @@ function generateReport(data) {
     if (isValid(data.densidad))  orina.push(`Densidad: ${fmt(data.densidad, 0)}`);
     if (isValid(data.ph_orina))  orina.push(`pH: ${fmt(data.ph_orina)}`);
 
-    let sedimentoParts = [];
-    [
-        ['protcr',              results.protcr],
-        ['proteinuriaestimada', results.proteinuriaestimada],
-        ['albcr',               results.albcr],
-    ].forEach(([key, val]) => {
-        const line = fmtParam(key, val);
-        if (line) sedimentoParts.push(line);
-    });
+    if (sedimentoUrinario) orina.push(`Sedimento: ${sedimentoUrinario}`);
 
-    if (sedimentoUrinario) {
-        orina.push(`Sedimento: ${sedimentoUrinario}`);
-        if (sedimentoParts.length > 0) orina.push(sedimentoParts.join('   '));
-    } else if (sedimentoParts.length > 0) {
-        orina.push(`Sedimento: ${sedimentoParts.join('   ')}`);
-    }
+    ['protcr', 'proteinuriaestimada', 'albcr'].forEach(key => {
+        const line = fmtParam(key, results[key]);
+        if (line) orina.push(line);
+    });
 
     if (isValid(data.osmolalidad_orina_mosm_kg)) orina.push(`Osmolalidad urinaria: ${fmt(data.osmolalidad_orina_mosm_kg)}mOsm/kg`);
 
-    // ── COCIENTES ────────────────────────────────────────────────
-    let cocientes = [];
     ['aucr', 'nak', 'cacr', 'citratocr', 'cacitrato', 'oxalatocr'].forEach(key => {
         const line = fmtParam(key, results[key]);
-        if (line) cocientes.push(line);
+        if (line) orina.push(line);
     });
 
     // ── ORINA 24H ────────────────────────────────────────────────
@@ -1128,7 +1116,7 @@ function generateReport(data) {
     });
 
     // ── RESTO DE LA FUNCIÓN (sin cambios) ────────────────────────
-    let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + cocientes.length + orina24h.length + (comentarioNutricional ? 1 : 0)) > 0;
+    let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + orina24h.length + (comentarioNutricional ? 1 : 0)) > 0;
 
     if (hayDatosAnalitica) {
         report.push("1) Analítica");
@@ -1137,7 +1125,6 @@ function generateReport(data) {
         if (hematologico.length > 0) report.push(`Hematológico: ${hematologico.join(' | ')}`);
         if (gasometria.length > 0)   report.push(`Gasometría: ${gasometria.join(' | ')}`);
         if (orina.length > 0)        report.push(`Orina puntual: ${orina.join(' | ')}`);
-        if (cocientes.length > 0)    report.push(`Cocientes urinarios: ${cocientes.join(' | ')}`);
         if (orina24h.length > 0)     report.push(`Orina de 24h: ${orina24h.join(' | ')}`);
         if (comentarioNutricional)   report.push(`Otros: ${comentarioNutricional}`);
     }
@@ -1249,7 +1236,20 @@ function generateReport(data) {
 
     const boldify = (str) => {
         let split = str.split(': ');
-        return split.length > 1 ? `<strong>${split[0]}:</strong> ${split.slice(1).join(': ')}` : str;
+        if (split.length > 1) {
+            let label = split[0];
+            let prefix = '';
+            if (label.startsWith('(')) {
+                prefix = '(';
+                label = label.substring(1);
+            }
+            if (label.includes('eGFR')) {
+                return `${prefix}<em style="font-weight: normal;">${label}</em>: ${split.slice(1).join(': ')}`;
+            }
+            let result = `${prefix}<strong>${label}:</strong> ${split.slice(1).join(': ')}`;
+            return result.replace(/(eGFR[^:]+)(?=:)/g, '<em style="font-weight: normal;">$1</em>');
+        }
+        return str.replace(/(eGFR[^:]+)(?=:)/g, '<em style="font-weight: normal;">$1</em>');
     };
 
     let html = `<div class="report-body">`;
@@ -1261,7 +1261,6 @@ function generateReport(data) {
         if (hematologico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Hematológico:</u></strong> ${hematologico.map(escapeHTML).map(boldify).join(' | ')}</li>`;
         if (gasometria.length > 0)   html += `<li style="margin-bottom: 4px;"><strong><u>Gasometría:</u></strong> ${gasometria.map(boldify).join(' | ')}</li>`;
         if (orina.length > 0)        html += `<li style="margin-bottom: 4px;"><strong><u>Orina puntual:</u></strong> ${orina.map(escapeHTML).map(boldify).join(' | ')}</li>`;
-        if (cocientes.length > 0)    html += `<li style="margin-bottom: 4px;"><strong><u>Cocientes urinarios:</u></strong> ${cocientes.map(boldify).join(' | ')}</li>`;
         if (orina24h.length > 0)     html += `<li style="margin-bottom: 4px;"><strong><u>Orina de 24h:</u></strong> ${orina24h.map(boldify).join(' | ')}</li>`;
         if (comentarioNutricional)   html += `<li style="margin-bottom: 4px;"><strong><u>Otros:</u></strong> ${escapeHTML(comentarioNutricional)}</li>`;
         html += `</ul>`;
@@ -1378,10 +1377,12 @@ function buildReportHTML() {
 
             const bg    = i % 2 === 0 ? '#ffffff' : '#f8fafc';
             const color = ev.enRango ? '#0891b2' : '#dc2626';
+            const isGFR = (p?.label || '').includes('eGFR');
+            const labelHTML = isGFR ? `<i style="font-weight: normal;">${p?.label || key}</i>` : (p?.label || key);
 
             t += `
           <tr style="background:${bg};">
-            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${p?.label || key}</td>
+            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${labelHTML}</td>
             <td style="padding:5px 10px;font-size:12px;font-weight:bold;color:${color};font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${valorTexto}</td>
             <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${(ev.rangoTexto || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
           </tr>`;

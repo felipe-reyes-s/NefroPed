@@ -70,7 +70,7 @@ export function exportToPDF(AppState, rawData = {}) {
                 let extraRows = [];
                 const tituloLower = sec.titulo.toLowerCase();
                 
-                if (tituloLower.includes('hematolog')) { 
+                if (tituloLower.includes('hematol')) { 
                     const serieBlanca = document.getElementById('serie_blanca')?.value?.trim();
                     const seriePlaquetaria = document.getElementById('serie_plaquetaria')?.value?.trim();
                     const coagulacion = document.getElementById('coagulacion')?.value?.trim();
@@ -89,9 +89,9 @@ export function exportToPDF(AppState, rawData = {}) {
                 let extraSpace = 0;
                 doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
                 extraRows.forEach(r => {
-                    const textWidthLimit = maxW - (COL_VAL - margin); 
+                    const textWidthLimit = COL_RANG - COL_VAL - 2; 
                     const lineas = doc.splitTextToSize(r.value, textWidthLimit);
-                    extraSpace += Math.max(PDF_CONFIG.rowHeight, lineas.length * PDF_CONFIG.textPadding + 2);
+                    extraSpace += Math.max(PDF_CONFIG.rowHeight, (lineas.length * PDF_CONFIG.textLineHeight) + 2);
                 });
 
                 checkSpace(15 + filas.length * PDF_CONFIG.rowHeight + extraSpace);
@@ -118,8 +118,9 @@ export function exportToPDF(AppState, rawData = {}) {
                     const val  = R[key];
                     const ev   = (key !== 'superficiecorporal' && key !== 'imc') ? evaluarRango(key, val, edad, edadM) : { enRango: true, rangoTexto: '' };
                     const p = PARAMETROS[key];
-                    let valorTexto = parseFloat(val).toFixed(2) + (p?.unit ? ' ' + p.unit : '');
-
+                    let valorTexto = (key === 'densidad' ? parseFloat(val).toFixed(0) : parseFloat(val).toFixed(2));
+                    if (!ev.enRango) valorTexto = '*' + valorTexto;
+                    valorTexto += (p?.unit ? ' ' + p.unit : '');
                     if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, PDF_CONFIG.rowHeight, 'F'); }
                     alt = !alt;
 
@@ -144,9 +145,9 @@ export function exportToPDF(AppState, rawData = {}) {
                 // Imprimir las filas extra (Sedimento, etc.) SIN negrita y bien alineadas
                 extraRows.forEach(row => {
                     doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                    const textWidthLimit = maxW - (COL_VAL - margin); 
+                    const textWidthLimit = COL_RANG - COL_VAL - 2; 
                     const lineas = doc.splitTextToSize(row.value, textWidthLimit);
-                    const rowH = Math.max(PDF_CONFIG.rowHeight, lineas.length * PDF_CONFIG.textPadding + 2);
+                    const rowH = Math.max(PDF_CONFIG.rowHeight, (lineas.length * PDF_CONFIG.textLineHeight) + 2);
                     checkSpace(rowH);
 
                     if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, rowH, 'F'); }
@@ -158,8 +159,11 @@ export function exportToPDF(AppState, rawData = {}) {
                     let tempY = y + PDF_CONFIG.textPadding;
                     lineas.forEach(l => {
                         doc.text(l, COL_VAL, tempY); // Empieza exactamente en la columna "VALOR"
-                        tempY += PDF_CONFIG.textPadding;
+                        tempY += PDF_CONFIG.textLineHeight;
                     });
+                    
+                    doc.setFontSize(7.5); doc.setTextColor(...PDF_PALETTE.GREY);
+                    doc.text('—', COL_RANG, y+PDF_CONFIG.textPadding);
 
                     doc.setDrawColor(...PDF_PALETTE.LGREY); doc.setLineWidth(0.1);
                     doc.line(margin, y+rowH, pageW-margin, y+rowH);
@@ -198,27 +202,7 @@ export function exportToPDF(AppState, rawData = {}) {
             if (AppState.ecografiaReportText) {
                 drawTextBlock('Ecografía renal', AppState.ecografiaReportText.replace(/^-/, '').trim());
             }
-
-            // ══ RESUMEN ALERTAS ════════════════════════════
-            if (AppState.valoresFueraRango?.length > 0) {
-                doc.setFont('helvetica','normal'); doc.setFontSize(8);
-                let arrayDeLineas = [];
-                AppState.valoresFueraRango.forEach(v => { arrayDeLineas = arrayDeLineas.concat(doc.splitTextToSize('• ' + v, maxW - 8)); });
-                
-                const bH = 10 + arrayDeLineas.length * PDF_CONFIG.textLineHeight;
-                checkSpace(bH + 5);
-                
-                doc.setFillColor(...PDF_PALETTE.RED_BG); doc.roundedRect(margin, y, maxW, bH, 2, 2, 'F');
-                doc.setDrawColor(...PDF_PALETTE.RED); doc.setLineWidth(0.4); doc.roundedRect(margin, y, maxW, bH, 2, 2, 'S');
-                doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.RED);
-                doc.text('⚠  VALORES FUERA DE RANGO', margin+4, y+6.5);
-                y += 12;
-                
-                doc.setFont('helvetica','normal'); doc.setFontSize(8);
-                arrayDeLineas.forEach(l => { checkSpace(6); doc.text(l, margin+4, y); y += PDF_CONFIG.textLineHeight; });
-                y += 4;
-            }
-
+            
             // ══ ESTADIFICACIÓN KDIGO ═══════════════════════
             if (AppState.estadificacionKDIGO) {
                 doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
@@ -230,21 +214,77 @@ export function exportToPDF(AppState, rawData = {}) {
                 doc.setDrawColor(...PDF_PALETTE.TEAL); doc.setLineWidth(0.4); doc.roundedRect(margin, y, maxW, bH, 2, 2, 'S');
                 
                 doc.setFont('helvetica','bold'); doc.setTextColor(...PDF_PALETTE.TEAL);
-                doc.text(AppState.estadificacionKDIGO.titulo, margin+4, y+6.5);
+                doc.text(AppState.estadificacionKDIGO.titulo.toUpperCase(), margin+4, y+6.5);
                 y += 12;
                 
                 doc.setTextColor(...PDF_PALETTE.DARK);
                 AppState.estadificacionKDIGO.items.forEach(item => {
                     checkSpace(6); 
                     const parts = item.split(':');
+                    const title = '• ' + parts[0] + ': ';
+                    const rest = parts.slice(1).join(':').trim();
                     doc.setFont('helvetica','bold');
-                    doc.text(parts[0] + ':', margin+4, y);
+                    const titleWidth = doc.getTextWidth(title);
+                    doc.text(title, margin+4, y);
                     doc.setFont('helvetica','normal');
-                    doc.text(parts.slice(1).join(':'), margin+4 + doc.getTextWidth(parts[0] + ': '), y);
+                    doc.text(rest, margin+4 + titleWidth, y);
                     y += PDF_CONFIG.textLineHeight; 
                 });
                 y += 4;
             }
+
+            // ══ RESUMEN ALERTAS ════════════════════════════
+            if (AppState.valoresFueraRango?.length > 0) {
+                doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                let totalLines = 0;
+                const processedAlerts = AppState.valoresFueraRango.map(v => {
+                    const parts = v.split(':');
+                    const title = '• ' + parts[0] + ': ';
+                    const rest = parts.slice(1).join(':').trim();
+                    
+                    doc.setFont('helvetica', 'bold');
+                    const titleW = doc.getTextWidth(title);
+                    doc.setFont('helvetica', 'normal');
+                    const restLines = doc.splitTextToSize(rest, maxW - 8 - titleW);
+                    
+                    totalLines += restLines.length;
+                    return { title, titleW, restLines };
+                });
+                
+                const bH = 10 + totalLines * PDF_CONFIG.textLineHeight;
+                checkSpace(bH + 5);
+                
+                doc.setFillColor(...PDF_PALETTE.RED_BG); doc.roundedRect(margin, y, maxW, bH, 2, 2, 'F');
+                doc.setDrawColor(...PDF_PALETTE.RED); doc.setLineWidth(0.4); doc.roundedRect(margin, y, maxW, bH, 2, 2, 'S');
+                doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.RED);
+                doc.text('RESULTADOS FUERA DE RANGO', margin+4, y+6.5);
+                y += 12;
+                
+                doc.setFontSize(8); doc.setTextColor(...PDF_PALETTE.DARK);
+                processedAlerts.forEach(item => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(item.title, margin + 4, y);
+                    
+                    doc.setFont('helvetica', 'normal');
+                    item.restLines.forEach(line => {
+                        doc.text(line, margin + 4 + item.titleW, y);
+                        y += PDF_CONFIG.textLineHeight;
+                    });
+                });
+                y += 4;
+            }
+
+            // ══ AVISO LEGAL ════════════════════════════════
+            doc.setFont('helvetica', 'italic'); doc.setFontSize(8.5); doc.setTextColor(...PDF_PALETTE.GREY);
+            const avisoText = 'Los rangos de normalidad sólo están establecidos para los resultados obtenidos por la calculadora pediátrica, no para los datos introducidos.';
+            const lineasAviso = doc.splitTextToSize(avisoText, maxW);
+            checkSpace(lineasAviso.length * PDF_CONFIG.textLineHeight + 6);
+            y += 4;
+            lineasAviso.forEach(l => {
+                doc.text(l, margin, y);
+                y += PDF_CONFIG.textLineHeight;
+            });
+            doc.setFont('helvetica', 'normal');
 
             // ══ PIE DE PÁGINA ══════════════════════════════
             const total = doc.internal.getNumberOfPages();

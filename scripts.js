@@ -893,8 +893,8 @@ function executeCalculations() {
 }
 
 function displayResults() {
+    if (!AppState.calculatedResults || Object.keys(AppState.calculatedResults).length === 0) return;
     const results = AppState.calculatedResults;
-    if (!results) return;
     const edad = AppState.edadEnAños || 0;
     const edadMeses = AppState.edadEnMeses || 0;
 
@@ -935,13 +935,14 @@ function displayResults() {
             const p = PARAMETROS[key];
             const label = p ? `${p.label}${p.unit ? ' (' + p.unit + ')' : ''}` : key;
 
-                const numValue = typeof valor === 'number' ? valor.toFixed(2) : '0.00';
+                let numValue = key === 'densidad' ? parseFloat(valor).toFixed(0) : (typeof valor === 'number' ? valor.toFixed(2) : '0.00');
                 
                 let colorStyle = 'color: var(--color-primary) !important; font-weight: bold;';
                 if (key !== "superficiecorporal" && key !== "imc") {
                     const evaluacion = evaluarRango(key, valor, edad, edadMeses);
                     if (!evaluacion.enRango) {
                         colorStyle = 'color: #dc2626 !important; font-weight: bold;';
+                        numValue = '*' + numValue;
                     }
                 }
                 
@@ -952,11 +953,12 @@ function displayResults() {
                     </div>`;
             }
         });
-        
+
         if (itemsHTML !== "") {
             htmlFinal += `
                 <div style="margin-top: 24px;">
                     <h4 style="margin-bottom: 12px; color: var(--color-primary); border-bottom: 2px solid var(--color-bg-1); padding-bottom: 6px; font-size: 15px; font-weight: 600;">
+                    <h4 style="margin-bottom: 12px; color: var(--color-primary); border-bottom: 2px solid var(--color-bg-1); padding-bottom: 6px; font-size: 15px; font-weight: 600; text-decoration: underline;">
                         ${cat.titulo}
                     </h4>
                     <div class="results-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
@@ -972,6 +974,7 @@ function displayResults() {
         htmlFinal += `
             <div style="margin-top: 24px;">
                 <h4 style="margin-bottom: 12px; color: var(--color-primary); border-bottom: 2px solid var(--color-bg-1); padding-bottom: 6px; font-size: 15px; font-weight: 600;">
+                <h4 style="margin-bottom: 12px; color: var(--color-primary); border-bottom: 2px solid var(--color-bg-1); padding-bottom: 6px; font-size: 15px; font-weight: 600; text-decoration: underline;">
                     Ecografía Renal
                 </h4>
                 <div class="results-grid" style="display: grid; grid-template-columns: 1fr; gap: 16px;">
@@ -994,7 +997,10 @@ function generateReport(data) {
     function fmtParam(key, value, decimals = 2) {
         if (!isValid(value)) return null;
         const p = PARAMETROS[key];
-        return `${p?.label ?? key}: ${fmt(value, decimals)}${p?.unit ?? ''}`;
+        let valText = key === 'densidad' ? fmt(value, 0) : fmt(value, decimals);
+        const ev = (key !== 'superficiecorporal' && key !== 'imc') ? evaluarRango(key, value, AppState.edadEnAños, AppState.edadEnMeses) : { enRango: true };
+        if (!ev.enRango) valText = '*' + valText;
+        return `${p?.label ?? key}: ${valText}${p?.unit ?? ''}`;
     }
 
     let report = [];
@@ -1120,13 +1126,13 @@ function generateReport(data) {
 
     if (hayDatosAnalitica) {
         report.push("1) Analítica");
-        if (hidrosalino.length > 0)  report.push(`Hidrosalino: ${hidrosalino.join(' | ')}`);
-        if (fosfocalcico.length > 0) report.push(`Metabolismo fosfocálcico: ${fosfocalcico.join(' | ')}`);
-        if (hematologico.length > 0) report.push(`Hematológico: ${hematologico.join(' | ')}`);
-        if (gasometria.length > 0)   report.push(`Gasometría: ${gasometria.join(' | ')}`);
-        if (orina.length > 0)        report.push(`Orina puntual: ${orina.join(' | ')}`);
-        if (orina24h.length > 0)     report.push(`Orina de 24h: ${orina24h.join(' | ')}`);
-        if (comentarioNutricional)   report.push(`Otros: ${comentarioNutricional}`);
+        if (hidrosalino.length > 0)  report.push(`· Hidrosalino: ${hidrosalino.join(' | ')}`);
+        if (fosfocalcico.length > 0) report.push(`· Metabolismo fosfocálcico: ${fosfocalcico.join(' | ')}`);
+        if (hematologico.length > 0) report.push(`· Hematológico: ${hematologico.join(' | ')}`);
+        if (gasometria.length > 0)   report.push(`· Gasometría: ${gasometria.join(' | ')}`);
+        if (orina.length > 0)        report.push(`· Orina puntual: ${orina.join(' | ')}`);
+        if (orina24h.length > 0)     report.push(`· Orina de 24h: ${orina24h.join(' | ')}`);
+        if (comentarioNutricional)   report.push(`· Otros: ${comentarioNutricional}`);
     }
     if (AppState.ecografiaReportText) {
         report.push(`\n2) Ecografía Renal`);
@@ -1188,10 +1194,10 @@ function generateReport(data) {
             AppState.estadificacionKDIGO = { titulo: 'Estadificación según guías KDIGO 2024', items: grados_kdigo.map(g => g.replace('- ', '')) };
             report.push('\n\nESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2024\n');
             report = report.concat(grados_kdigo);
-            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación según guías KDIGO 2024</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">ESTADIFICACIÓN SEGÚN GUÍAS KDIGO 2024</h4><ul style="margin-top: 0; padding-left: 20px;">`;
             grados_kdigo.forEach(g => {
-                let part = g.replace('- ', '').split(': ');
-                htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(': ')}</li>`;
+                let parts = g.replace('- ', '').split(':');
+                htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':').trim()}</li>`;
             });
             htmlEstadificacion += `</ul>`;
         }
@@ -1211,10 +1217,10 @@ function generateReport(data) {
             AppState.estadificacionKDIGO = { titulo: 'Estadificación ERC (Ajustada a < 2 años)', items: grados_lactante.map(g => g.replace('- ', '')) };
             report.push('\n\nESTADIFICACIÓN ERC (AJUSTADA A EDAD < 2 AÑOS)\n');
             report = report.concat(grados_lactante);
-            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">Estadificación ERC (Ajustada a &lt; 2 años)</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+            htmlEstadificacion = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">ESTADIFICACIÓN ERC (AJUSTADA A &lt; 2 AÑOS)</h4><ul style="margin-top: 0; padding-left: 20px;">`;
             grados_lactante.forEach(g => {
-                let part = g.replace('- ', '').split(': ');
-                htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${part[0]}:</strong> ${part.slice(1).join(': ')}</li>`;
+                let parts = g.replace('- ', '').split(':');
+                htmlEstadificacion += `<li style="margin-bottom: 4px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':').trim()}</li>`;
             });
             htmlEstadificacion += `</ul>`;
         }
@@ -1222,9 +1228,9 @@ function generateReport(data) {
 
     let htmlFueraRango = "";
     if (AppState.valoresFueraRango && AppState.valoresFueraRango.length > 0) {
-        report.push('\n\nVALORES FUERA DE RANGO\n');
+        report.push('\n\nRESULTADOS FUERA DE RANGO\n');
         AppState.valoresFueraRango.map(v => `-${v}`).forEach(v => report.push(v));
-        htmlFueraRango = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">⚠️ Valores fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px;">`;
+        htmlFueraRango = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">⚠️ Resultados fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px;">`;
         AppState.valoresFueraRango.forEach(v => {
             let part = v.split(':');
             htmlFueraRango += `<li style="margin-bottom: 4px; color: #dc2626;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
@@ -1335,7 +1341,7 @@ function buildReportHTML() {
         let extraRows = [];
         const tituloLower = sec.titulo.toLowerCase();
         
-        if (tituloLower.includes('hematolog')) { 
+        if (tituloLower.includes('hematol')) { 
             const serieBlanca = document.getElementById('serie_blanca')?.value?.trim();
             const seriePlaquetaria = document.getElementById('serie_plaquetaria')?.value?.trim();
             const coagulacion = document.getElementById('coagulacion')?.value?.trim();
@@ -1372,7 +1378,8 @@ function buildReportHTML() {
                         : { enRango: true, rangoTexto: '' };
 
             const p = PARAMETROS[key];
-            let valorTexto = parseFloat(val).toFixed(2);
+            let valorTexto = key === 'densidad' ? parseFloat(val).toFixed(0) : parseFloat(val).toFixed(2);
+            if (!ev.enRango) valorTexto = '*' + valorTexto;
             if (p?.unit) valorTexto += ' ' + p.unit;
 
             const bg    = i % 2 === 0 ? '#ffffff' : '#f8fafc';
@@ -1395,7 +1402,8 @@ function buildReportHTML() {
             t += `
           <tr style="background:${bg};">
             <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">${escapeHTML(row.label)}</td>
-            <td colspan="2" style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;white-space:pre-wrap;">${escapeHTML(row.value)}</td>
+            <td style="padding:5px 10px;font-size:12px;color:#1e293b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;white-space:pre-wrap;">${escapeHTML(row.value)}</td>
+            <td style="padding:5px 10px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;border-bottom:1px solid #e2e8f0;">—</td>
           </tr>`;
             i++;
         });
@@ -1429,35 +1437,45 @@ function buildReportHTML() {
         html += drawTextBlock('Ecografía renal', AppState.ecografiaReportText.replace(/^-/, '').trim());
     }
 
-    if (AppState.valoresFueraRango?.length > 0) {
-        const items = AppState.valoresFueraRango
-            .map(v => `<li style="margin-bottom:3px;">${v.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('');
+    if (AppState.estadificacionKDIGO) {
+        const items = AppState.estadificacionKDIGO.items.map(v => {
+            const parts = v.split(':');
+            return `<li style="margin-bottom:3px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':').trim()}</li>`;
+        }).join('');
         html += `
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
           <tr>
-            <td style="background:#fee2e2;border:2px solid #dc2626;padding:12px 16px;">
-              <div style="font-size:12px;font-weight:bold;color:#dc2626;font-family:Arial,sans-serif;margin-bottom:6px;">VALORES FUERA DE RANGO</div>
+            <td style="background:#f0f9ff;border:2px solid #0891b2;padding:12px 16px;">
+              <div style="font-size:12px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:6px;">${AppState.estadificacionKDIGO.titulo.toUpperCase()}</div>
               <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
             </td>
           </tr>
         </table>`;
     }
 
-    if (AppState.estadificacionKDIGO) {
-        const items = AppState.estadificacionKDIGO.items.map(v => {
-            const parts = v.split(':');
-            return `<li style="margin-bottom:3px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':')}</li>`;
-        }).join('');
+    if (AppState.valoresFueraRango?.length > 0) {
+        const items = AppState.valoresFueraRango
+            .map(v => {
+                const parts = v.split(':');
+                const title = parts[0];
+                const rest = parts.slice(1).join(':').trim().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<li style="margin-bottom:3px;"><strong>${title}: </strong>${rest}</li>`;
+            }).join('');
         html += `
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
           <tr>
-            <td style="background:#f0f9ff;border:2px solid #0891b2;padding:12px 16px;">
-              <div style="font-size:12px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:6px;">${AppState.estadificacionKDIGO.titulo}</div>
+            <td style="background:#fee2e2;border:2px solid #dc2626;padding:12px 16px;">
+              <div style="font-size:12px;font-weight:bold;color:#dc2626;font-family:Arial,sans-serif;margin-bottom:6px;">RESULTADOS FUERA DE RANGO</div>
               <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
             </td>
           </tr>
         </table>`;
     }
+
+    html += `
+    <div style="margin-top:8px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;font-style:italic;text-align:justify;">
+        Los rangos de normalidad sólo están establecidos para los resultados obtenidos por la calculadora pediátrica, no para los datos introducidos.
+    </div>`;
 
     html += `
     <div style="margin-top:16px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:10px;color:#64748b;font-family:Arial,sans-serif;text-align:center;">

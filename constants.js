@@ -47,15 +47,43 @@ export const PARAMETROS = {
     albuminuria:         { label: 'Albuminuria',            unit: 'mg/1.73m²/día' },
     proteinuria:         { label: 'Proteinuria',            unit: 'mg/m²/día'     },
     proteinuriaestimada: { label: 'Proteinuria estimada',   unit: 'mg/m²/día'     },
+    
+    // Datos Crudos (Para el reporte unificado)
+    urea_mg_dl:             { label: 'Urea',                    unit: 'mg/dL' },
+    creatinina_enz_mg_dl:   { label: 'Cr',                      unit: 'mg/dL' },
+    cistatina_c_mg_l:       { label: 'Cistatina C',             unit: 'mg/L' },
+    na_plasma_meq_l:        { label: 'Na',                      unit: 'mEq/L' },
+    k_plasma_meq_l:         { label: 'K',                       unit: 'mEq/L' },
+    cl_plasma_meq_l:        { label: 'Cl',                      unit: 'mEq/L' },
+    au_plasma_mg_dl:        { label: 'AU',                      unit: 'mg/dL' },
+    ca_plasma_mg_dl:        { label: 'Ca',                      unit: 'mg/dL' },
+    p_plasma_mg_dl:         { label: 'P',                       unit: 'mg/dL' },
+    mg_plasma_mg_dl:        { label: 'Mg',                      unit: 'mg/dL' },
+    pth_pg_ml:              { label: 'PTH',                     unit: 'pg/mL' },
+    vitamina_d_ng_ml:       { label: 'Vitamina D',              unit: 'ng/mL' },
+    fosfatasa_alcalina_u_l: { label: 'Fosfatasa alcalina',      unit: 'U/L' },
+    hb_g_l:                 { label: 'Hemoglobina',             unit: 'g/L' },
+    ferritina_ng_ml:        { label: 'Ferritina',               unit: 'ng/mL' },
+    ist_percent:            { label: 'IST',                     unit: '%' },
+    ph_plasma:              { label: 'pH',                      unit: '' },
+    pco2_mmhg:              { label: 'pCO2',                    unit: 'mmHg' },
+    hco3_mmol_l:            { label: 'HCO3',                    unit: 'mmol/L' },
+    exceso_bases_mmol_l:    { label: 'Exceso de bases',         unit: 'mmol/L' },
+    densidad:               { label: 'Densidad',                unit: '' },
+    ph_orina:               { label: 'pH',                      unit: '' },
+    osmolalidad_orina_mosm_kg: { label: 'Osmolalidad urinaria', unit: 'mOsm/kg' }
 };
 
 export const SECCIONES = [
     { titulo: 'Datos Generales', keys: ['superficiecorporal','imc'] },
-    { titulo: 'Filtrado Glomerular (eGFR) ml/min/1.73m²', keys: ['vpercent','schwartz_neo','schwartz_lact','schwartz_bedside','bokenkamp','ckid_u25_cr','ekfc_cr','ckid_u25_cistc','ekfc_cistc','ckid_u25_combinado'] },
-    { titulo: 'Excreción Fraccional', keys: ['efna','efau','efk','efcl'] },
-    { titulo: 'Índices Urinarios (Orina Puntual)', keys: ['cacr','mgcr','pcr','rtp','aucr','albcr','oxalatocr','protcr','citratocr','nak','cacitrato'] },
-    { titulo: 'Excreción en 24h', keys: ['uricosuria','calciuria','citraturia','fosfaturia','magnesuria','oxaluria','albuminuria','proteinuria','proteinuriaestimada'] },
+    { titulo: 'Hidrosalino', keys: ['urea_mg_dl','creatinina_enz_mg_dl','schwartz_neo','schwartz_lact','schwartz_bedside','ckid_u25_cr','ekfc_cr','cistatina_c_mg_l','bokenkamp','ckid_u25_cistc','ekfc_cistc','ckid_u25_combinado','vpercent','na_plasma_meq_l','efna','k_plasma_meq_l','efk','cl_plasma_meq_l','efcl','au_plasma_mg_dl','efau'] },
+    { titulo: 'Metabolismo fosfocálcico', keys: ['ca_plasma_mg_dl','cacr','p_plasma_mg_dl','rtp','mg_plasma_mg_dl','mgcr','pcr','pth_pg_ml','vitamina_d_ng_ml','fosfatasa_alcalina_u_l'] },
+    { titulo: 'Hematológico', keys: ['hb_g_l','ferritina_ng_ml','ist_percent'] },
+    { titulo: 'Gasometría', keys: ['ph_plasma','pco2_mmhg','hco3_mmol_l','exceso_bases_mmol_l'] },
+    { titulo: 'Orina puntual', keys: ['densidad','ph_orina','protcr','proteinuriaestimada','albcr','osmolalidad_orina_mosm_kg','aucr','nak','cacr','citratocr','cacitrato','oxalatocr'] },
+    { titulo: 'Orina de 24h', keys: ['uricosuria','calciuria','citraturia','fosfaturia','magnesuria','oxaluria','albuminuria','proteinuria'] }
 ];
+
 export const TAB_FIELDS = {
     'datos-basicos-tab':  ['fechanacimiento', 'fechaanalitica', 'pesokg', 'tallacm'],
     'bioquimica-tab':     ['ureamgdl', 'creatininaenzmgdl', 'auplasmamgdl', 'naplasmameql',

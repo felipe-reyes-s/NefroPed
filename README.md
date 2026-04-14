@@ -7,7 +7,7 @@
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./screenshot-mobile-2.png" alt="Captura de pantalla de NefroPed Modo Oscuro" width="260">
   <br>
-  <em>(Interfaz principal de la aplicación con soporte nativo para Modo Claro y Oscuro)</em>
+  <em>(Interfaz principal de la aplicación con soporte nativo)</em>
 </div>
 
 NefroPed es una Aplicación Web Progresiva (PWA) diseñada específicamente para profesionales sanitarios en el ámbito de la nefrología pediátrica. Permite realizar cálculos clínicos complejos, estadificaciones y fórmulas de forma rápida, segura y adaptada al entorno hospitalario.

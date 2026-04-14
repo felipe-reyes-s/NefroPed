@@ -39,8 +39,8 @@ export function exportToPDF(AppState, rawData = {}) {
             y = 26;
 
             // ══ DATOS DEL PACIENTE ═════════════════════════
-            const get = id => document.getElementById(id)?.value || '—';
-            const sexoStr = get('sexo') === 'M' ? 'Masculino' : (get('sexo') === 'F' ? 'Femenino' : '—');
+            const get = id => (rawData[id] && rawData[id] !== '') ? rawData[id] : '—';
+            const sexoStr = rawData.sexo === 'M' ? 'Masculino' : (rawData.sexo === 'F' ? 'Femenino' : '—');
 
             doc.setFillColor(...PDF_PALETTE.LGREY2);
             doc.roundedRect(margin, y, maxW, 20, 2, 2, 'F');
@@ -71,15 +71,15 @@ export function exportToPDF(AppState, rawData = {}) {
                 const tituloLower = sec.titulo.toLowerCase();
                 
                 if (tituloLower.includes('hematol')) { 
-                    const serieBlanca = document.getElementById('serie_blanca')?.value?.trim();
-                    const seriePlaquetaria = document.getElementById('serie_plaquetaria')?.value?.trim();
-                    const coagulacion = document.getElementById('coagulacion')?.value?.trim();
+                    const serieBlanca = rawData.serie_blanca;
+                    const seriePlaquetaria = rawData.serie_plaquetaria;
+                    const coagulacion = rawData.coagulacion;
                     if (serieBlanca)      extraRows.push({ label: 'Serie blanca',      value: serieBlanca });
                     if (seriePlaquetaria) extraRows.push({ label: 'Serie plaquetaria', value: seriePlaquetaria });
                     if (coagulacion)      extraRows.push({ label: 'Coagulación',       value: coagulacion });
                 }
                 if (tituloLower.includes('orina puntual')) { 
-                    const sedimento = document.getElementById('sedimento_urinario')?.value?.trim();
+                    const sedimento = rawData.sedimento_urinario;
                     if (sedimento) extraRows.push({ label: 'Sedimento', value: sedimento });
                 }
 

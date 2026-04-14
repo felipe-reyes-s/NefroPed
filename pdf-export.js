@@ -86,15 +86,7 @@ export function exportToPDF(AppState, rawData = {}) {
                 const filas = sec.keys.filter(k => R[k] !== undefined && R[k] !== null && R[k] !== 0 && !isNaN(R[k]) && R[k] !== '');
                 if (!filas.length && !extraRows.length) return;
 
-                let extraSpace = 0;
-                doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-                extraRows.forEach(r => {
-                    const textWidthLimit = COL_RANG - COL_VAL - 2; 
-                    const lineas = doc.splitTextToSize(r.value, textWidthLimit);
-                    extraSpace += Math.max(PDF_CONFIG.rowHeight, (lineas.length * PDF_CONFIG.textLineHeight) + 2);
-                });
-
-                checkSpace(15 + filas.length * PDF_CONFIG.rowHeight + extraSpace);
+                checkSpace(15);
 
                 doc.setFillColor(...PDF_PALETTE.TEAL);
                 doc.rect(margin, y, maxW, 7, 'F');
@@ -103,18 +95,25 @@ export function exportToPDF(AppState, rawData = {}) {
                 doc.text(sec.titulo, margin+3, y+5);
                 y += 7;
 
-                doc.setFillColor(...PDF_PALETTE.LGREY);
-                doc.rect(margin, y, maxW, 5.5, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(7);
-                doc.setTextColor(...PDF_PALETTE.GREY);
-                doc.text('PARÁMETRO', margin+3, y+4);
-                doc.text('VALOR', COL_VAL, y+4);
-                doc.text('RANGO NORMAL', COL_RANG, y+4);
-                y += 5.5;
+                const drawHeader = () => {
+                    doc.setFillColor(...PDF_PALETTE.LGREY);
+                    doc.rect(margin, y, maxW, 5.5, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                    doc.setTextColor(...PDF_PALETTE.GREY);
+                    doc.text('PARÁMETRO', margin+3, y+4);
+                    doc.text('VALOR', COL_VAL, y+4);
+                    doc.text('RANGO NORMAL', COL_RANG, y+4);
+                    y += 5.5;
+                };
+                
+                drawHeader();
 
                 let alt = false;
                 filas.forEach(key => {
-                    checkSpace(7);
+                    if (y + PDF_CONFIG.rowHeight > pageH - 12) {
+                        newPage();
+                        drawHeader();
+                    }
                     const val  = R[key];
                     const ev   = (key !== 'superficiecorporal' && key !== 'imc') ? evaluarRango(key, val, edad, edadM) : { enRango: true, rangoTexto: '' };
                     const p = PARAMETROS[key];
@@ -148,7 +147,11 @@ export function exportToPDF(AppState, rawData = {}) {
                     const textWidthLimit = COL_RANG - COL_VAL - 2; 
                     const lineas = doc.splitTextToSize(row.value, textWidthLimit);
                     const rowH = Math.max(PDF_CONFIG.rowHeight, (lineas.length * PDF_CONFIG.textLineHeight) + 2);
-                    checkSpace(rowH);
+                    
+                    if (y + rowH > pageH - 12) {
+                        newPage();
+                        drawHeader();
+                    }
 
                     if (alt) { doc.setFillColor(...PDF_PALETTE.LGREY3); doc.rect(margin, y, maxW, rowH, 'F'); }
                     alt = !alt;

@@ -341,7 +341,7 @@ function buildReportHTML(AppState, rawData = {}) {
     let html = '';
 
     html += `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="background:#0891b2;padding:12px 16px;">
           <span style="color:#fff;font-size:17px;font-weight:bold;font-family:Arial,sans-serif;">NefroPed</span>
@@ -351,10 +351,11 @@ function buildReportHTML(AppState, rawData = {}) {
           <span style="color:#fff;font-size:11px;font-family:Arial,sans-serif;">${new Date().toLocaleDateString('es-ES')}</span>
         </td>
       </tr>
-    </table>`;
+    </table>
+    <div style="line-height:14px;font-size:1px;">&nbsp;</div>`;
 
     html += `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;border-collapse:collapse;border:1px solid #e2e8f0;background:#f8fafc;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;background:#f8fafc;">
       <tr>
         <td style="padding:10px 14px;">
           <div style="font-size:10px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:5px;letter-spacing:0.5px;">DATOS DEL PACIENTE</div>
@@ -370,7 +371,8 @@ function buildReportHTML(AppState, rawData = {}) {
           </div>
         </td>
       </tr>
-    </table>`;
+    </table>
+    <div style="line-height:14px;font-size:1px;">&nbsp;</div>`;
 
     const drawTable = (sec) => {
         if (!sec) return '';
@@ -395,17 +397,22 @@ function buildReportHTML(AppState, rawData = {}) {
         if (!filas.length && !extraRows.length) return '';
 
         let t = `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
-            <td colspan="3" style="background:#0891b2;padding:6px 10px;">
+            <td style="background:#0891b2;padding:6px 10px;">
               <span style="color:#fff;font-size:11px;font-weight:bold;font-family:Arial,sans-serif;">${sec.titulo}</span>
             </td>
           </tr>
-          <tr style="background:#e2e8f0;">
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:40%;">PARÁMETRO</td>
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">VALOR</td>
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">RANGO NORMAL</td>
-          </tr>`;
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+          <thead>
+            <tr style="background:#e2e8f0;">
+              <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:40%;">PARÁMETRO</td>
+              <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">VALOR</td>
+              <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">RANGO NORMAL</td>
+            </tr>
+          </thead>
+          <tbody>`;
 
         let i = 0;
         filas.forEach((key) => {
@@ -444,7 +451,8 @@ function buildReportHTML(AppState, rawData = {}) {
             i++;
         });
 
-        t += `</table>`;
+        t += `</tbody></table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
         return t;
     };
 
@@ -452,7 +460,7 @@ function buildReportHTML(AppState, rawData = {}) {
         let textValue = (texto && typeof texto === 'string') ? texto.trim() : '';
         if (!textValue || textValue === '—') return '';
         return `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="background:#0891b2;padding:6px 10px;">
               <span style="color:#fff;font-size:11px;font-weight:bold;font-family:Arial,sans-serif;">${titulo}</span>
@@ -461,7 +469,8 @@ function buildReportHTML(AppState, rawData = {}) {
           <tr>
             <td style="padding:10px 12px;font-size:12px;color:#0891b2;font-weight:bold;font-family:Arial,sans-serif;line-height:1.6;border:1px solid #e2e8f0;border-top:none;white-space:pre-wrap;">${escapeHTML(textValue)}</td>
           </tr>
-        </table>`;
+        </table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
     };
 
     SECCIONES.forEach(sec => { html += drawTable(sec); });
@@ -474,14 +483,15 @@ function buildReportHTML(AppState, rawData = {}) {
             return `<li style="margin-bottom:3px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':').trim()}</li>`;
         }).join('');
         html += `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="background:#f0f9ff;border:2px solid #0891b2;padding:12px 16px;">
               <div style="font-size:12px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:6px;">${AppState.estadificacionKDIGO.titulo.toUpperCase()}</div>
               <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
             </td>
           </tr>
-        </table>`;
+        </table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
     }
 
     if (AppState.valoresFueraRango?.length > 0) {
@@ -493,14 +503,15 @@ function buildReportHTML(AppState, rawData = {}) {
                 return `<li style="margin-bottom:3px;"><strong>${title}: </strong>${rest}</li>`;
             }).join('');
         html += `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="background:#fee2e2;border:2px solid #dc2626;padding:12px 16px;">
               <div style="font-size:12px;font-weight:bold;color:#dc2626;font-family:Arial,sans-serif;margin-bottom:6px;">RESULTADOS FUERA DE RANGO</div>
               <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
             </td>
           </tr>
-        </table>`;
+        </table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
     }
 
     html += `
@@ -530,6 +541,8 @@ export function exportToWord(AppState, rawData) {
                     @page { mso-page-orientation: portrait; margin: 20mm; }
                     body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                     table { border-collapse: collapse; }
+                    thead { display: table-header-group; }
+                    tr { page-break-inside: avoid; }
                 </style>
             </head>
             <body>${body}</body>
@@ -554,6 +567,8 @@ export function printReport(AppState, rawData) {
             @page { margin: 15mm; }
             body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             table { border-collapse: collapse; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
             @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
     </head><body>${body}</body></html>`;

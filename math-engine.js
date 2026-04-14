@@ -171,7 +171,8 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
     const proteinuriaEstimada = protcr * 0.63;
     const vpercent = (data.creatinina_enz_mg_dl > 0 && data.creatinina_orina_mg_dl > 0) ? (data.creatinina_enz_mg_dl / data.creatinina_orina_mg_dl) * 100 : 0;
 
-    return {
+    // Agrupamos los resultados para el saneamiento final
+    const resultadosFinales = {
         superficiecorporal: superficieCorporal, imc: imc, vpercent: vpercent, 
         schwartz_neo, schwartz_lact, schwartz_bedside, bokenkamp, ekfc_cr, ekfc_cistc,
         ckid_u25_cr: ckid_u25_cr, ckid_u25_cistc: ckid_u25_cistc, ckid_u25_combinado: ckid_u25_combinado, 
@@ -180,6 +181,16 @@ export function performMedicalCalculations(data, edadAnos, edadMeses) {
         uricosuria: uricosuria, calciuria: calciuria, citraturia: citraturia, fosfaturia: fosfaturia, oxaluria: oxaluria, 
         magnesuria: magnesuria, albuminuria: albuminuria, proteinuria: proteinuria, proteinuriaestimada: proteinuriaEstimada
     };
+
+    // Saneamiento de seguridad (Auditoría): Convertir posibles NaN o Infinity a 0
+    Object.keys(resultadosFinales).forEach(key => {
+        const val = resultadosFinales[key];
+        if (typeof val === 'number' && (!Number.isFinite(val) || isNaN(val))) {
+            resultadosFinales[key] = 0;
+        }
+    });
+
+    return resultadosFinales;
 }
 
 /**

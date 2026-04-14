@@ -1,3 +1,6 @@
+export const APP_VERSION = '1.0';
+export const APP_YEAR = new Date().getFullYear(); // Se actualizará solo cada año
+
 export const PDF_PALETTE = {
     TEAL:   [8,   145, 178],
     RED:    [220,  38,  38],

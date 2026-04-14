@@ -1,7 +1,8 @@
 import { parseFecha, evaluarRango, performMedicalCalculations, obryckiLMS, zScoreToPercentile } from './math-engine.js';
-import { PARAMETROS, SECCIONES, TAB_FIELDS } from './constants.js';
+import { PARAMETROS, SECCIONES, TAB_FIELDS, APP_VERSION, APP_YEAR } from './constants.js';
 import { exportToPDF } from './pdf-export.js';
 import { generateReport, exportToWord, printReport, copyToClipboard } from './report-generator.js';
+import { getEl } from './utils.js';
 
 // ======================================================================================
 // 1. REGISTRO DEL SERVICE WORKER CON GESTIÓN AVANZADA DE ACTUALIZACIONES (PWA)
@@ -76,16 +77,13 @@ const AppState = {
     edadEnMeses: 0,
     edadTotalMeses: 0,
     valoresFueraRango: [],
-    ecografiaReportText: ""
+    ecografiaReportText: "",
+    reportPlainText: ""
 };
 
 const SESSION_STORAGE_KEY = 'calcRenalDataTemporales';
 const THEME_STORAGE_KEY = 'themePref';
 // ────────────────────────────────────────────────────────────────────────────
-
-// ⚡ CACHÉ DE DOM: Mejora el rendimiento evitando consultas continuas al HTML
-const DOM_CACHE = {};
-const getEl = (id) => DOM_CACHE[id] || (DOM_CACHE[id] = document.getElementById(id));
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -113,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupThemeToggle(); 
     posicionarDropdownExport(); 
 
-    const checkMonoreno = document.getElementById('check_monoreno');
+    const checkMonoreno = getEl('check_monoreno');
     if (checkMonoreno) {
         checkMonoreno.addEventListener('change', function() {
             toggleMonoreno(this.checked);
@@ -257,7 +255,12 @@ function setupSecretTap() {
 // GESTIÓN DEL MODO OSCURO (FOOTER)
 // ===============================================
 function setupThemeToggle() {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    let savedTheme = null;
+    try {
+        savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    } catch (_) {
+        /* Silenciar error en navegadores con storage deshabilitado (Modo Privado Safari, etc.) */
+    }
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
     
@@ -265,12 +268,16 @@ function setupThemeToggle() {
     document.documentElement.setAttribute('data-color-scheme', currentTheme);
 
     // Listener del header
-    const headerBtn = document.getElementById('theme-toggle-header');
+    const headerBtn = getEl('theme-toggle-header');
     if (headerBtn) {
         headerBtn.addEventListener('click', () => {
             const current = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-color-scheme', current);
-            localStorage.setItem(THEME_STORAGE_KEY, current);
+            try {
+                localStorage.setItem(THEME_STORAGE_KEY, current);
+            } catch (_) {
+                /* Silenciar error en navegadores con storage deshabilitado */
+            }
         });
     }
 }
@@ -301,13 +308,6 @@ function setupAutoSave() {
         form.addEventListener('input', () => {
             const data = getFormData(); // Usa la función existente para recoger datos numéricos
             
-            // Añade manualmente los campos de texto largo que no están en getFormData
-            data.sedimento_urinario = getEl('sedimento_urinario')?.value || '';
-            data.comentario_nutricional = getEl('comentario_nutricional')?.value || '';
-            data.serie_blanca = getEl('serie_blanca')?.value || '';
-            data.serie_plaquetaria = getEl('serie_plaquetaria')?.value || '';
-            data.coagulacion = getEl('coagulacion')?.value || '';
-            
             // 🛡️ Privacidad (RGPD/HIPAA): Bloqueo proactivo de datos identificativos futuros
             const SENSITIVE_FIELDS = ['nombre', 'paciente', 'apellidos', 'nhc', 'historia', 'dni', 'identificador'];
             SENSITIVE_FIELDS.forEach(field => delete data[field]);
@@ -329,15 +329,6 @@ function rellenarFechaHoy() {
     const año = hoy.getFullYear();
     getEl('fecha_analitica').value = `${dia}/${mes}/${año}`;
     calcularEdad();
-}
-function escapeHTML(str) {
-if (!str) return '';
-return String(str)
-.replace(/&/g, '&amp;')
-.replace(/</g, '&lt;')
-.replace(/>/g, '&gt;')
-.replace(/"/g, '&quot;')
-.replace(/'/g, '&#039;');
 }
 
 function calcularEdad() {
@@ -617,7 +608,7 @@ function setupButtons() {
                     </p>
                     <hr style="border-color:var(--color-border); margin:12px 0">
                     <p style="text-align:center; font-size:11px; color:var(--color-text-secondary)">
-                        v1.0 · 2026 · Uso exclusivo para profesionales sanitarios
+                        v${APP_VERSION} · ${APP_YEAR} · Uso exclusivo para profesionales sanitarios
                     </p>
                 `,
                 confirmButtonText: 'Cerrar',
@@ -783,6 +774,14 @@ function getFormData() {
             data[fieldId] = isNaN(numValue) ? 0 : numValue;
         }
     });
+    
+    // Campos de texto libre y textareas (se añaden al paquete unificado de datos)
+    data.serie_blanca           = getEl('serie_blanca')?.value.trim() ?? '';
+    data.serie_plaquetaria      = getEl('serie_plaquetaria')?.value.trim() ?? '';
+    data.coagulacion            = getEl('coagulacion')?.value.trim() ?? '';
+    data.sedimento_urinario     = getEl('sedimento_urinario')?.value.trim() ?? '';
+    data.comentario_nutricional = getEl('comentario_nutricional')?.value.trim() ?? '';
+    
     data.edad = AppState.edadEnAños || 0;
     return data;
 }

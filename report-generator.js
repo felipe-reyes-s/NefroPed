@@ -1,16 +1,6 @@
 import { PARAMETROS, SECCIONES } from './constants.js';
 import { evaluarRango } from './math-engine.js';
-
-// Función auxiliar de seguridad local
-function escapeHTML(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+import { escapeHTML, getEl } from './utils.js';
 
 export function generateReport(AppState, data) {
     const results = AppState.calculatedResults;
@@ -28,6 +18,22 @@ export function generateReport(AppState, data) {
     }
 
     let report = [];
+
+    // ── DATOS DEL PACIENTE Y GENERALES ───────────────────────────
+    const get = id => (data[id] && data[id] !== '') ? data[id] : '—';
+    const sexoStr = data.sexo === 'M' ? 'Masculino' : (data.sexo === 'F' ? 'Femenino' : '—');
+
+    report.push("DATOS DEL PACIENTE");
+    report.push(`F. Nacimiento: ${get('fecha_nacimiento')} | F. Analítica: ${get('fecha_analitica')} | Edad: ${AppState.edadEnAños || 0} años ${AppState.edadEnMeses || 0} meses`);
+    report.push(`Sexo: ${sexoStr} | Peso: ${get('peso_kg')} kg | Talla: ${get('talla_cm')} cm\n`);
+
+    let datosGenerales = [];
+    if (isValid(results.superficiecorporal)) datosGenerales.push(`Superficie Corporal: ${fmt(results.superficiecorporal)}m²`);
+    if (isValid(results.imc)) datosGenerales.push(`IMC: ${fmt(results.imc)}kg/m²`);
+    if (datosGenerales.length > 0) {
+        report.push("DATOS GENERALES");
+        report.push('· ' + datosGenerales.join(' | ') + '\n');
+    }
 
     // ── HIDROSALINO ──────────────────────────────────────────────
     let hidrosalino = [];
@@ -103,9 +109,9 @@ export function generateReport(AppState, data) {
     if (isValid(data.hb_g_l))          hematologico.push(`Hemoglobina: ${fmt(data.hb_g_l)}g/L`);
     if (isValid(data.ferritina_ng_ml)) hematologico.push(`Ferritina: ${fmt(data.ferritina_ng_ml)}ng/mL`);
     if (isValid(data.ist_percent))     hematologico.push(`IST: ${fmt(data.ist_percent)}%`);
-    const serieBlanca      = escapeHTML(document.getElementById('serie_blanca')?.value.trim() ?? '');
-    const seriePlaquetaria = escapeHTML(document.getElementById('serie_plaquetaria')?.value.trim() ?? '');
-    const coagulacion      = escapeHTML(document.getElementById('coagulacion')?.value.trim() ?? '');
+    const serieBlanca      = escapeHTML(data.serie_blanca || '');
+    const seriePlaquetaria = escapeHTML(data.serie_plaquetaria || '');
+    const coagulacion      = escapeHTML(data.coagulacion || '');
     if (serieBlanca)      hematologico.push(`Serie blanca: ${serieBlanca}`);
     if (seriePlaquetaria) hematologico.push(`Serie plaquetaria: ${seriePlaquetaria}`);
     if (coagulacion)      hematologico.push(`Coagulación: ${coagulacion}`);
@@ -119,8 +125,8 @@ export function generateReport(AppState, data) {
 
     // ── ORINA PUNTUAL ────────────────────────────────────────────
     let orina = [];
-    const sedimentoUrinario    = escapeHTML(document.getElementById('sedimento_urinario')?.value.trim() ?? '');
-    const comentarioNutricional = escapeHTML(document.getElementById('comentario_nutricional')?.value.trim() ?? '');
+    const sedimentoUrinario    = escapeHTML(data.sedimento_urinario || '');
+    const comentarioNutricional = escapeHTML(data.comentario_nutricional || '');
     if (isValid(data.densidad))  orina.push(`Densidad: ${fmt(data.densidad, 0)}`);
     if (isValid(data.ph_orina))  orina.push(`pH: ${fmt(data.ph_orina)}`);
 
@@ -149,7 +155,7 @@ export function generateReport(AppState, data) {
     let hayDatosAnalitica = (hidrosalino.length + fosfocalcico.length + hematologico.length + gasometria.length + orina.length + orina24h.length + (comentarioNutricional ? 1 : 0)) > 0;
 
     if (hayDatosAnalitica) {
-        report.push("1) Analítica");
+        report.push("ANALÍTICA");
         if (hidrosalino.length > 0)  report.push(`· Hidrosalino: ${hidrosalino.join(' | ')}`);
         if (fosfocalcico.length > 0) report.push(`· Metabolismo fosfocálcico: ${fosfocalcico.join(' | ')}`);
         if (hematologico.length > 0) report.push(`· Hematológico: ${hematologico.join(' | ')}`);
@@ -159,7 +165,7 @@ export function generateReport(AppState, data) {
         if (comentarioNutricional)   report.push(`· Otros: ${comentarioNutricional}`);
     }
     if (AppState.ecografiaReportText) {
-        report.push(`\n2) Ecografía Renal`);
+        report.push(`\nECOGRAFÍA RENAL`);
         report.push('· ' + AppState.ecografiaReportText.replace(/^-/, '').trim());
     }
 
@@ -283,8 +289,22 @@ export function generateReport(AppState, data) {
     };
 
     let html = `<div class="report-body">`;
+
+    html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Datos del Paciente</h4>`;
+    html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
+    html += `<li style="margin-bottom: 4px;"><strong>F. Nacimiento:</strong> ${get('fecha_nacimiento')} | <strong>F. Analítica:</strong> ${get('fecha_analitica')} | <strong>Edad:</strong> ${AppState.edadEnAños || 0} años ${AppState.edadEnMeses || 0} meses</li>`;
+    html += `<li style="margin-bottom: 4px;"><strong>Sexo:</strong> ${sexoStr} | <strong>Peso:</strong> ${get('peso_kg')} kg | <strong>Talla:</strong> ${get('talla_cm')} cm</li>`;
+    html += `</ul>`;
+
+    if (datosGenerales.length > 0) {
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Datos Generales</h4>`;
+        html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
+        html += `<li style="margin-bottom: 4px;">${datosGenerales.map(boldify).join(' | ')}</li>`;
+        html += `</ul>`;
+    }
+
     if (hayDatosAnalitica) {
-        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">1) Analítica</h4>`;
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Analítica</h4>`;
         html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
         if (hidrosalino.length > 0)  html += `<li style="margin-bottom: 4px;"><strong><u>Hidrosalino:</u></strong> ${hidrosalino.map(boldify).join(' | ')}</li>`;
         if (fosfocalcico.length > 0) html += `<li style="margin-bottom: 4px;"><strong><u>Metabolismo fosfocálcico:</u></strong> ${fosfocalcico.map(boldify).join(' | ')}</li>`;
@@ -296,7 +316,7 @@ export function generateReport(AppState, data) {
         html += `</ul>`;
     }
     if (AppState.ecografiaReportText) {
-        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 15px;">2) Ecografía Renal</h4>`;
+        html += `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 15px;">Ecografía Renal</h4>`;
         html += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
         html += `<li style="margin-bottom: 4px;">${escapeHTML(AppState.ecografiaReportText.replace(/^-/, '').trim()).replace('Longitud renal ecográfica:', '<strong><u>Longitud renal ecográfica:</u></strong>')}</li>`;
         html += `</ul>`;
@@ -305,23 +325,23 @@ export function generateReport(AppState, data) {
     html += htmlFueraRango;
     html += `</div>`;
 
-    const reportContentDiv = document.getElementById('reportContent');
+    const reportContentDiv = getEl('reportContent');
     reportContentDiv.innerHTML = window.DOMPurify.sanitize(html);
-    document.getElementById('reportSection').classList.remove('hidden');
-    setTimeout(() => { document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+    getEl('reportSection').classList.remove('hidden');
+    setTimeout(() => { getEl('results').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
 
 function buildReportHTML(AppState, rawData = {}) {
     const R     = Object.assign({}, rawData, AppState.calculatedResults);
     const edad  = AppState.edadEnAños  || 0;
     const edadM = AppState.edadEnMeses || 0;
-    const get   = id => document.getElementById(id)?.value || '—';
-    const sexoStr = get('sexo') === 'M' ? 'Masculino' : (get('sexo') === 'F' ? 'Femenino' : '—');
+    const get   = id => (rawData[id] && rawData[id] !== '') ? rawData[id] : '—';
+    const sexoStr = rawData.sexo === 'M' ? 'Masculino' : (rawData.sexo === 'F' ? 'Femenino' : '—');
 
     let html = '';
 
     html += `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="background:#0891b2;padding:12px 16px;">
           <span style="color:#fff;font-size:17px;font-weight:bold;font-family:Arial,sans-serif;">NefroPed</span>
@@ -331,10 +351,11 @@ function buildReportHTML(AppState, rawData = {}) {
           <span style="color:#fff;font-size:11px;font-family:Arial,sans-serif;">${new Date().toLocaleDateString('es-ES')}</span>
         </td>
       </tr>
-    </table>`;
+    </table>
+    <div style="line-height:14px;font-size:1px;">&nbsp;</div>`;
 
     html += `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;border-collapse:collapse;border:1px solid #e2e8f0;background:#f8fafc;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e2e8f0;background:#f8fafc;">
       <tr>
         <td style="padding:10px 14px;">
           <div style="font-size:10px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:5px;letter-spacing:0.5px;">DATOS DEL PACIENTE</div>
@@ -350,7 +371,8 @@ function buildReportHTML(AppState, rawData = {}) {
           </div>
         </td>
       </tr>
-    </table>`;
+    </table>
+    <div style="line-height:14px;font-size:1px;">&nbsp;</div>`;
 
     const drawTable = (sec) => {
         if (!sec) return '';
@@ -359,15 +381,15 @@ function buildReportHTML(AppState, rawData = {}) {
         const tituloLower = sec.titulo.toLowerCase();
         
         if (tituloLower.includes('hematol')) { 
-            const serieBlanca = document.getElementById('serie_blanca')?.value?.trim();
-            const seriePlaquetaria = document.getElementById('serie_plaquetaria')?.value?.trim();
-            const coagulacion = document.getElementById('coagulacion')?.value?.trim();
+            const serieBlanca = rawData.serie_blanca;
+            const seriePlaquetaria = rawData.serie_plaquetaria;
+            const coagulacion = rawData.coagulacion;
             if (serieBlanca)      extraRows.push({ label: 'Serie blanca',      value: serieBlanca });
             if (seriePlaquetaria) extraRows.push({ label: 'Serie plaquetaria', value: seriePlaquetaria });
             if (coagulacion)      extraRows.push({ label: 'Coagulación',       value: coagulacion });
         }
         if (tituloLower.includes('orina puntual')) { 
-            const sedimento = document.getElementById('sedimento_urinario')?.value?.trim();
+            const sedimento = rawData.sedimento_urinario;
             if (sedimento) extraRows.push({ label: 'Sedimento', value: sedimento });
         }
 
@@ -375,17 +397,22 @@ function buildReportHTML(AppState, rawData = {}) {
         if (!filas.length && !extraRows.length) return '';
 
         let t = `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
-            <td colspan="3" style="background:#0891b2;padding:6px 10px;">
+            <td style="background:#0891b2;padding:6px 10px;">
               <span style="color:#fff;font-size:11px;font-weight:bold;font-family:Arial,sans-serif;">${sec.titulo}</span>
             </td>
           </tr>
-          <tr style="background:#e2e8f0;">
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:40%;">PARÁMETRO</td>
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">VALOR</td>
-            <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">RANGO NORMAL</td>
-          </tr>`;
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+          <thead>
+            <tr style="background:#e2e8f0;">
+              <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:40%;">PARÁMETRO</td>
+              <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">VALOR</td>
+              <td style="padding:4px 10px;font-size:10px;font-weight:bold;color:#64748b;font-family:Arial,sans-serif;width:30%;">RANGO NORMAL</td>
+            </tr>
+          </thead>
+          <tbody>`;
 
         let i = 0;
         filas.forEach((key) => {
@@ -424,7 +451,8 @@ function buildReportHTML(AppState, rawData = {}) {
             i++;
         });
 
-        t += `</table>`;
+        t += `</tbody></table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
         return t;
     };
 
@@ -432,7 +460,7 @@ function buildReportHTML(AppState, rawData = {}) {
         let textValue = (texto && typeof texto === 'string') ? texto.trim() : '';
         if (!textValue || textValue === '—') return '';
         return `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="background:#0891b2;padding:6px 10px;">
               <span style="color:#fff;font-size:11px;font-weight:bold;font-family:Arial,sans-serif;">${titulo}</span>
@@ -441,7 +469,8 @@ function buildReportHTML(AppState, rawData = {}) {
           <tr>
             <td style="padding:10px 12px;font-size:12px;color:#0891b2;font-weight:bold;font-family:Arial,sans-serif;line-height:1.6;border:1px solid #e2e8f0;border-top:none;white-space:pre-wrap;">${escapeHTML(textValue)}</td>
           </tr>
-        </table>`;
+        </table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
     };
 
     SECCIONES.forEach(sec => { html += drawTable(sec); });
@@ -454,14 +483,15 @@ function buildReportHTML(AppState, rawData = {}) {
             return `<li style="margin-bottom:3px;"><strong>${parts[0]}:</strong> ${parts.slice(1).join(':').trim()}</li>`;
         }).join('');
         html += `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="background:#f0f9ff;border:2px solid #0891b2;padding:12px 16px;">
               <div style="font-size:12px;font-weight:bold;color:#0891b2;font-family:Arial,sans-serif;margin-bottom:6px;">${AppState.estadificacionKDIGO.titulo.toUpperCase()}</div>
               <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
             </td>
           </tr>
-        </table>`;
+        </table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
     }
 
     if (AppState.valoresFueraRango?.length > 0) {
@@ -473,14 +503,15 @@ function buildReportHTML(AppState, rawData = {}) {
                 return `<li style="margin-bottom:3px;"><strong>${title}: </strong>${rest}</li>`;
             }).join('');
         html += `
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-collapse:collapse;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
           <tr>
             <td style="background:#fee2e2;border:2px solid #dc2626;padding:12px 16px;">
               <div style="font-size:12px;font-weight:bold;color:#dc2626;font-family:Arial,sans-serif;margin-bottom:6px;">RESULTADOS FUERA DE RANGO</div>
               <ul style="margin:0;padding-left:18px;font-size:11px;color:#1e293b;font-family:Arial,sans-serif;">${items}</ul>
             </td>
           </tr>
-        </table>`;
+        </table>
+        <div style="line-height:12px;font-size:1px;">&nbsp;</div>`;
     }
 
     html += `
@@ -510,16 +541,15 @@ export function exportToWord(AppState, rawData) {
                     @page { mso-page-orientation: portrait; margin: 20mm; }
                     body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                     table { border-collapse: collapse; }
+                    thead { display: table-header-group; }
+                    tr { page-break-inside: avoid; }
                 </style>
             </head>
             <body>${body}</body>
         </html>`;
         const blob = new Blob(['\ufeff', fullHTML], { type: 'application/msword' });
-        const url  = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url; link.download = 'informe-nefroped.doc';
-        link.click(); URL.revokeObjectURL(url);
-        window.Swal.fire({ icon: 'success', title: 'Word descargado', timer: 2000, showConfirmButton: false });
+        window.saveAs(blob, 'informe-nefroped.doc');
+        window.Swal.fire({ icon: 'success', title: 'Word descargado', text: 'En iPhone/iPad, ábrelo desde "Archivos" con la app de Word.', timer: 3500, showConfirmButton: false });
     } catch(e) {
         window.Swal.fire({ icon: 'error', title: 'Error', text: 'Error exportando.' });
     }
@@ -537,6 +567,8 @@ export function printReport(AppState, rawData) {
             @page { margin: 15mm; }
             body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             table { border-collapse: collapse; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
             @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
     </head><body>${body}</body></html>`;

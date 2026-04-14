@@ -75,7 +75,6 @@
   /* Tipografía y Espaciado */
   --font-family-base: "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-size-base: 14px;
-  --font-size-base: 14px;
   --font-size-md: 14px;
   --font-size-lg: 16px;
   --font-size-xl: 18px;
@@ -86,8 +85,8 @@
   --font-size-xs: 11px;
   
   --font-weight-medium: 500;
-  --font-weight-semibold: 550;
-  --font-weight-bold: 600;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --line-height-tight: 1.2;
   --line-height-normal: 1.5;
 
@@ -155,6 +154,18 @@
 
 /* Soporte manual Toggle Botón Oscuro/Claro */
 [data-color-scheme="dark"] {
+    --color-bg-base: #0f172a;
+    --color-bg-surface: #1e293b;
+    --color-txt-main: #f1f5f9;
+    --color-txt-muted: #cbd5e1;
+    --color-sem-success: #34d399;
+    --color-sem-error: #f87171;
+    --color-sem-warning: #fbbf24;
+    --color-brand-primary: #22d3ee;
+    --color-brand-hover: #06b6d4;
+    --color-brand-active: #0891b2;
+    --color-border-base: #334155;
+    
     --color-background: #0f172a;
     --color-surface: #1e293b;
     --color-text: #f1f5f9;
@@ -175,6 +186,18 @@
 }
 
 [data-color-scheme="light"] {
+    --color-bg-base: #f1f5f9;
+    --color-bg-surface: #ffffff;
+    --color-txt-main: #0f172a;
+    --color-txt-muted: #475569;
+    --color-sem-success: #10b981;
+    --color-sem-error: #ef4444;
+    --color-sem-warning: #f59e0b;
+    --color-brand-primary: #0891b2;
+    --color-brand-hover: #0e7490;
+    --color-brand-active: #155e75;
+    --color-border-base: #e2e8f0;
+    
     --color-background: #f8fafc;
     --color-surface: #ffffff;
     --color-text: #0f172a;
@@ -221,7 +244,7 @@ h4 { font-size: var(--font-size-xl); }
 .container { width: 100%; max-width: 1280px; margin: 0 auto; padding: var(--space-16); }
 
 /* Anti-selección en UI */
-.form-label, .app-header, .tabs-container, .section-title, .btn, .result-item, summary {
+.form-label, .app-header, .tabs-container, .section-title, .btn, summary {
     -webkit-user-select: none; -moz-user-select: none; user-select: none; cursor: default;
 }
 
@@ -287,7 +310,7 @@ h4 { font-size: var(--font-size-xl); }
 }
 .tab-button:hover { color: var(--color-text); background: var(--color-bg-1); }
 .tab-button.active { color: var(--color-primary); border-bottom-color: var(--color-primary); background: var(--color-bg-1); font-weight: var(--font-weight-bold); }
-.tab-button:focus-visible { outline: none; background: var(--color-bg-1); }
+.tab-button:focus-visible { background: var(--color-bg-1); }
 
 .tab-content { display: none; padding: var(--space-24); border: none; box-shadow: none; background: transparent; margin-bottom: 0;}
 .tab-content.active { display: block; }
@@ -345,29 +368,16 @@ form textarea.form-control {
     overflow: hidden;
     resize: none;
     
-    white-space: normal; 
-    word-break: break-all; 
-    
-    /* EL TRUCO DEFINITIVO: 
-       Hacemos que el renglón mida exactamente lo mismo que la caja (42px).
-       El texto quedará centrado verticalmente por arte de magia, y la 2ª línea
-       empezará en el píxel 43, quedando decapitada y 100% invisible. */
-    line-height: 42px;
-    padding-top: 0px;
-    padding-bottom: 0px;
-    
-    padding-left: 12px; 
-    padding-right: 12px; 
+    /* Comportamiento estándar y robusto: Truncar a 1 línea sin perder el centro */
+    line-height: 1.5;
+    padding: 10px 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 form textarea.form-control:focus {
     height: 150px;
     min-height: 150px;
-    
-    /* Al hacer clic, devolvemos el texto a su tamaño y márgenes normales */
-    line-height: 1.5;
-    padding-top: 10px;
-    padding-bottom: 10px;
     
     white-space: normal;
     word-break: normal; 
@@ -377,9 +387,6 @@ form textarea.form-control:focus {
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     z-index: 10;
     position: relative;
-    
-    padding-left: 12px;
-    padding-right: 12px; 
 }
 
 /* Campos especiales (Spinners y Edad) */
@@ -487,14 +494,6 @@ input#edad_calculada, input.input-bloqueado { background-color: #f1f5f9; color: 
 }
 .btn-theme-footer:hover { background: var(--color-surface); border-color: var(--color-primary); color: var(--color-primary); transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .btn-theme-footer i { font-size: 12px; }
-.footer-acciones {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 12px 0;
-}
 
 /* En pantallas muy pequeñas (iPhone SE, Xiaomi Entry) */
 @media (max-width: 380px) {
@@ -525,6 +524,7 @@ input#edad_calculada, input.input-bloqueado { background-color: #f1f5f9; color: 
 .result-item { 
   background-color: var(--color-surface); padding: var(--space-16); border-radius: var(--radius-base); 
   border: 1px solid var(--color-card-border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease;
+  -webkit-user-select: text; -moz-user-select: text; user-select: text; cursor: auto;
 }
 .result-item:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
 /* ============================================
@@ -568,34 +568,34 @@ input#edad_calculada, input.input-bloqueado { background-color: #f1f5f9; color: 
     position: relative;
 }
 
-.export-summary {
+details.export-details > summary.export-summary {
     display: inline-flex;
     align-items: center;
     padding: 8px 16px;
     background: transparent;
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-base);
-    color: var(--color-primary)!important;
+    color: var(--color-primary);
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     list-style: none;
     min-height: 40px;
     height: 40px;        /* ← fuerza altura fija */
-    width: auto !important;  /* ← nunca ancho completo */
+    width: auto;  /* ← nunca ancho completo */
     font-family: var(--font-family-base);
     transition: all 0.2s ease;
 }
-.export-summary::-webkit-details-marker { display: none; }
-.export-summary:hover { background: var(--color-bg-1); }
+details.export-details > summary.export-summary::-webkit-details-marker { display: none; }
+details.export-details > summary.export-summary:hover { background: var(--color-bg-1); }
 .export-dropdown a,
 .export-dropdown button {
-    color: var(--color-primary) !important;
+    color: var(--color-primary);
 }
 
 .export-dropdown a:hover,
 .export-dropdown button:hover {
-    color: var(--color-primary-hover) !important;
+    color: var(--color-primary-hover);
 }
 /* Dropdown hacia ABAJO por defecto */
 .export-dropdown {
@@ -654,7 +654,7 @@ input#edad_calculada, input.input-bloqueado { background-color: #f1f5f9; color: 
         align-items: center;
     }
     .export-details { width: 100%; display: flex; justify-content: center; }
-    .export-summary {
+    details.export-details > summary.export-summary {
         justify-content: center;
     }
     .export-dropdown {
@@ -679,7 +679,7 @@ input#edad_calculada, input.input-bloqueado { background-color: #f1f5f9; color: 
 .hidden { display: none !important; }
 
 /* Detalles y Referencias (Usa color secundario en vez de negro) */
-summary { color: var(--color-text-secondary) !important; }
+summary { color: var(--color-text-secondary); }
 summary:focus:not(:focus-visible) { outline: none; }
 
 /* ============================================
@@ -721,10 +721,11 @@ summary:focus:not(:focus-visible) { outline: none; }
     background: var(--color-bg-2); padding: 12px 15px; 
     border-radius: var(--radius-md); border: 1px solid var(--color-border); 
     font-size: 12px; color: var(--color-text-secondary); transition: all 0.3s ease; 
+    margin-bottom: 12px;
 }
 .bibliography-summary { 
     cursor: pointer; font-weight: 600; outline: none; list-style: none; 
-    display: flex; align-items: center; gap: 8px; color: var(--color-text); 
+    display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); 
 }
 .bibliography-content { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
 .bibliography-list { margin: 0; padding-left: 20px; line-height: 1.6; text-align: left; }
@@ -751,25 +752,11 @@ summary:focus:not(:focus-visible) { outline: none; }
     color: var(--color-text-secondary); margin: 0;
 }
 
-/* Contacto — restaurar estilo original */
-.footer-contact-link {
-    color: var(--color-primary);
-    text-decoration: none;
-    display: inline-block;
-    font-size: 0.82rem;
-}
-.footer-contact-link:hover { text-decoration: underline; }
 /* Acciones: Contacto + Instalar */
 .footer-acciones {
     display: flex; justify-content: center;
-    align-items: center; gap: 24px;
+    align-items: center; gap: 12px; flex-wrap: wrap;
 }
-.footer-link {
-    font-size: 0.82rem; color: var(--color-primary);
-    text-decoration: none; background: none;
-    border: none; cursor: pointer; padding: 0; font-family: inherit;
-}
-.footer-link:hover { text-decoration: underline; }
 
 /* Botón instalar — mismo estilo que antes */
 .btn-install-app {
@@ -777,13 +764,16 @@ summary:focus:not(:focus-visible) { outline: none; }
     border: 1px solid var(--color-primary);
     color: var(--color-primary);
     font-size: 12px;
-    padding: 2px 12px;
+    padding: 4px 14px;
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.2s ease;
     min-height: unset;      /* ← anula el min-height del .btn base */
     line-height: 1.4;       /* ← anula el line-height heredado */
     height: auto;           /* ← por si .btn fuerza altura fija */
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
 }
 .btn-install-app:hover {
     background-color: var(--color-primary);

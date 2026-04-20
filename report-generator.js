@@ -109,9 +109,9 @@ export function generateReport(AppState, data) {
     if (isValid(data.hb_g_l))          hematologico.push(`Hemoglobina: ${fmt(data.hb_g_l)}g/L`);
     if (isValid(data.ferritina_ng_ml)) hematologico.push(`Ferritina: ${fmt(data.ferritina_ng_ml)}ng/mL`);
     if (isValid(data.ist_percent))     hematologico.push(`IST: ${fmt(data.ist_percent)}%`);
-    const serieBlanca      = escapeHTML(data.serie_blanca || '');
-    const seriePlaquetaria = escapeHTML(data.serie_plaquetaria || '');
-    const coagulacion      = escapeHTML(data.coagulacion || '');
+        const serieBlanca      = data.serie_blanca || '';
+        const seriePlaquetaria = data.serie_plaquetaria || '';
+        const coagulacion      = data.coagulacion || '';
     if (serieBlanca)      hematologico.push(`Serie blanca: ${serieBlanca}`);
     if (seriePlaquetaria) hematologico.push(`Serie plaquetaria: ${seriePlaquetaria}`);
     if (coagulacion)      hematologico.push(`Coagulación: ${coagulacion}`);
@@ -125,8 +125,8 @@ export function generateReport(AppState, data) {
 
     // ── ORINA PUNTUAL ────────────────────────────────────────────
     let orina = [];
-    const sedimentoUrinario    = escapeHTML(data.sedimento_urinario || '');
-    const comentarioNutricional = escapeHTML(data.comentario_nutricional || '');
+        const sedimentoUrinario    = data.sedimento_urinario || '';
+        const comentarioNutricional = data.comentario_nutricional || '';
     if (isValid(data.densidad))  orina.push(`Densidad: ${fmt(data.densidad, 0)}`);
     if (isValid(data.ph_orina))  orina.push(`pH: ${fmt(data.ph_orina)}`);
 
@@ -263,7 +263,8 @@ export function generateReport(AppState, data) {
         htmlFueraRango = `<h4 style="color: #0891b2; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">⚠️ Resultados fuera de rango</h4><ul style="margin-top: 0; padding-left: 20px;">`;
         AppState.valoresFueraRango.forEach(v => {
             let part = v.split(':');
-            htmlFueraRango += `<li style="margin-bottom: 4px; color: #dc2626;"><strong>${part[0]}:</strong> ${part.slice(1).join(':')}</li>`;
+            let rest = part.slice(1).join(':').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            htmlFueraRango += `<li style="margin-bottom: 4px; color: #dc2626;"><strong>${part[0]}:</strong> ${rest}</li>`;
         });
         htmlFueraRango += `</ul>`;
     }

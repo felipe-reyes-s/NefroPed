@@ -88,17 +88,17 @@ export const SECCIONES = [
 ];
 
 export const TAB_FIELDS = {
-    'datos-basicos-tab':  ['fechanacimiento', 'fechaanalitica', 'pesokg', 'tallacm'],
-    'bioquimica-tab':     ['ureamgdl', 'creatininaenzmgdl', 'auplasmamgdl', 'naplasmameql',
-                           'kplasmameql', 'clplasmameql', 'fosfatasaalcalinaul', 'caplasmamgdl',
-                           'pplasmamgdl', 'mgplasmamgdl', 'pthpgml', 'vitaminadngml', 'cistatinacmgl'],
-    'gasometria-tab':     ['phplasma', 'pco2mmhg', 'hco3mmoll', 'excesobasesmmoll'],
-    'orina-puntual-tab':  ['densidad', 'phorina', 'auorinamgdl', 'naorinameql', 'korinameql',
-                           'clorinameql', 'osmolalidadorinamosmkg', 'caorinamgdl', 'fosforoorinamgdl',
-                           'magnesioorinamgdl', 'albuminaorinamgdl', 'creatininaorinamgdl',
-                           'proteinasorinamgdl', 'citratoorinamgdl', 'oxalatoorinamgdl'],
-    'hematologia-tab':    ['hbgl', 'ferritinangml', 'istpercent'],
-    'orina-24h-tab':      ['au24hmg', 'ca24hmg', 'p24hmg', 'mg24hmg', 'albumina24hmg',
-                           'proteinas24hmg', 'citrato24hmg', 'oxalato24hmg'],
-    'ecografia-tab':      ['rinonizquierdomm', 'rinonderechomm']
+    'datos-basicos-tab':  ['fecha_nacimiento', 'fecha_analitica', 'peso_kg', 'talla_cm', 'sexo'],
+    'bioquimica-tab':     ['urea_mg_dl', 'creatinina_enz_mg_dl', 'au_plasma_mg_dl', 'na_plasma_meq_l',
+                           'k_plasma_meq_l', 'cl_plasma_meq_l', 'fosfatasa_alcalina_u_l', 'ca_plasma_mg_dl',
+                           'p_plasma_mg_dl', 'mg_plasma_mg_dl', 'pth_pg_ml', 'vitamina_d_ng_ml', 'cistatina_c_mg_l'],
+    'gasometria-tab':     ['ph_plasma', 'pco2_mmhg', 'hco3_mmol_l', 'exceso_bases_mmol_l'],
+    'orina-puntual-tab':  ['densidad', 'ph_orina', 'au_orina_mg_dl', 'na_orina_meq_l', 'k_orina_meq_l',
+                           'cl_orina_meq_l', 'osmolalidad_orina_mosm_kg', 'ca_orina_mg_dl', 'fosforo_orina_mg_dl',
+                           'magnesio_orina_mg_dl', 'albumina_orina_mg_dl', 'creatinina_orina_mg_dl',
+                           'proteinas_orina_mg_dl', 'citrato_orina_mg_dl', 'oxalato_orina_mg_dl'],
+    'hematologia-tab':    ['hb_g_l', 'ferritina_ng_ml', 'ist_percent'],
+    'orina-24h-tab':      ['au_24h_mg', 'ca_24h_mg', 'p_24h_mg', 'mg_24h_mg', 'albumina_24h_mg',
+                           'proteinas_24h_mg', 'citrato_24h_mg', 'oxalato_24h_mg'],
+    'ecografia-tab':      ['rinon_izquierdo_mm', 'rinon_derecho_mm']
 };

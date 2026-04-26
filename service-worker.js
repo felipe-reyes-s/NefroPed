@@ -1,6 +1,6 @@
 // Arquitectura Buildless: Incrementar manualmente este número de versión.
 // El cambio de bytes en este archivo fuerza al navegador a actualizar la caché PWA.
-const CACHE_NAME = 'nefroped-v35'; 
+const CACHE_NAME = 'nefroped-v38'; 
 
 
 const urlsToCache = [

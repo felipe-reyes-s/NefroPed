@@ -2,21 +2,28 @@
 
 **Calculadora Clínica Avanzada de Nefrología Pediátrica** 🌐 [Visitar la aplicación: nefroped.es](https://nefroped.es)
 
-![Captura de pantalla de NefroPed Modo Claro](./screenshot-mobile-1.png)
-*(Captura de la interfaz principal de la aplicación)*
+<div align="center">
+  <img src="./screenshot-mobile-1.png" alt="Captura de pantalla de NefroPed Modo Claro" width="260">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./screenshot-mobile-2.png" alt="Captura de pantalla de NefroPed Modo Oscuro" width="260">
+  <br>
+  <em>(Interfaz principal de la aplicación con soporte nativo)</em>
+</div>
 
 NefroPed es una Aplicación Web Progresiva (PWA) diseñada específicamente para profesionales sanitarios en el ámbito de la nefrología pediátrica. Permite realizar cálculos clínicos complejos, estadificaciones y fórmulas de forma rápida, segura y adaptada al entorno hospitalario.
 
 ## ✨ Características Principales
 
-* **🏥 Orientada a la práctica clínica:** Fórmulas actualizadas (eGFR CKiD U25, RTP, Superficie Corporal, etc.) validadas en la literatura médica estándar.
-* **🔒 Privacidad por Diseño (100% Local):** Los datos introducidos no se envían a ningún servidor. Todo el procesamiento matemático se realiza localmente en el navegador del dispositivo del usuario, garantizando el cumplimiento normativo de protección de datos.
+* **🏥 Orientada a la práctica clínica:** Fórmulas actualizadas y validadas en la literatura médica estándar:
+  * **Filtrado Glomerular:** Schwartz (Neonato, Lactante, Bedside), CKiD U25 (Cr, CistC, Combinada), EKFC (Cr, CistC) y Bökenkamp.
+  * **Estadificación Automática:** Según guías KDIGO 2024 (>2 años) y adaptación ERC para lactantes (<2 años).
+  * **Ecografía Renal:** Percentiles de longitud renal (Obrycki) e hipertrofia compensadora en paciente monoreno (Krill).
+  * **Otros Cálculos:** Excreciones fraccionales, ratios urinarios (Pr/Cr, Alb/Cr, Ca/Cr, Citrato/Cr, etc.), RTP, Superficie Corporal e IMC.
+* **💾 Autoguardado Inteligente:** Los datos introducidos no se pierden si recargas la página o cambias de pestaña accidentalmente.
+* **🔒 Privacidad por Diseño (100% Local):** Los datos clínicos no se envían a ningún servidor. Todo el procesamiento matemático se realiza localmente en el navegador del dispositivo del usuario, garantizando el cumplimiento normativo de protección de datos (RGPD).
 * **📱 Aplicación Web Progresiva (PWA):** Instalable en dispositivos móviles (iOS/Android) y ordenadores sin pasar por tiendas de aplicaciones. Funciona offline una vez cargada.
-* **📋 Integración en Historia Clínica:** Generación automática de informes médicos con formato limpio. Incluye exportación a PDF, Word (.docx) y copiado directo al portapapeles en un clic para pegar en aplicaciones oficiales de salud.
-* **🎨 Interfaz UI/UX Moderna:** Diseño aséptico, simétrico, con soporte nativo para Modo Claro/Oscuro y adaptabilidad total (Responsive Design).
-
-![Captura de pantalla de NefroPed Modo Oscuro](./screenshot-mobile-2.png)
-*(Soporte nativo para Modo Oscuro, ideal para guardias nocturnas)*
+* **📋 Integración en Historia Clínica:** Generación automática de informes médicos agrupados por sistemas (Hidrosalino, Fosfocálcico, Hematológico, etc.). Incluye detección de valores fuera de rango y exportación a PDF, Word (.docx), impresión y copiado al portapapeles.
+* **🎨 Interfaz UI/UX Moderna:** Diseño aséptico, simétrico, con soporte para Modo Claro/Oscuro y adaptabilidad total.
 
 ## 🛠️ Stack Tecnológico
 

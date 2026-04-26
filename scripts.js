@@ -411,7 +411,7 @@ function configurarEventosFechas() {
 
 function configureNumericValidation() {
     // Campos excluidos: fechas y ecografía tienen su propio manejo
-    const NO_DECIMALES = ['fecha_nacimiento', 'fecha_analitica', 'rinon_izquierdo_mm', 'rinon_derecho_mm'];
+    const NO_DECIMALES = ['fecha_nacimiento', 'fecha_analitica', 'rinon_izquierdo_mm', 'rinon_derecho_mm', 'sexo'];
     const camposDecimales = Object.values(TAB_FIELDS).flat()
         .filter(id => !NO_DECIMALES.includes(id));
 
@@ -419,11 +419,11 @@ function configureNumericValidation() {
         const input = getEl(fieldId);
         if (input) {
             input.type = 'text';
-            input.setAttribute('inputmode', 'decimal');
-            input.setAttribute('pattern', '[0-9.,\\-]*');
+            input.setAttribute('inputmode', 'text');
+            input.setAttribute('pattern', '[0-9.,\\-<>]*');
             input.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/\./g, ',');
-                value = (fieldId === 'exceso_bases_mmol_l') ? value.replace(/[^0-9,-]/g, '') : value.replace(/[^0-9,]/g, '');
+                value = (fieldId === 'exceso_bases_mmol_l') ? value.replace(/[^0-9,\-<>]/g, '') : value.replace(/[^0-9,<>]/g, '');
 
                 const parts = value.split(',');
                 if (parts.length > 2) value = parts[0] + ',' + parts.slice(1).join('');
@@ -436,7 +436,7 @@ function configureNumericValidation() {
             input.addEventListener('blur', function(e) {
                 let value = e.target.value;
                 if (value) {
-                    const numValue = parseFloat(value.replace(',', '.'));
+                    const numValue = parseFloat(value.replace(',', '.').replace(/[<>]/g, ''));
                     if (isNaN(numValue)) e.target.value = '';
                 }
             });
@@ -512,23 +512,28 @@ function switchTab(tabId, buttonElement) {
 function actualizarMarcadoresEnTiempoReal() {
     if (!AppState.primeraValidacion) return;
 
-    Object.keys(TAB_FIELDS).forEach(tabId => {
-        let tieneError = false;
-        TAB_FIELDS[tabId].forEach(campoId => {
-                const campo = getEl(campoId);
-            if (campo && !campo.disabled) {
-                if (!campo.value || campo.value.trim() === '') {
-                    tieneError = true;
-                    campo.classList.add('campo-error');
-                } else {
-                    campo.classList.remove('campo-error');
-                }
-            } else if (campo && campo.disabled) {
+    // 1. Validar dinámicamente usando la lista real de campos extraída del formulario
+    fieldIds.forEach(campoId => {
+        const campo = getEl(campoId);
+        if (campo && !campo.disabled) {
+            if (!campo.value || campo.value.trim() === '') {
+                campo.classList.add('campo-error');
+            } else {
                 campo.classList.remove('campo-error');
             }
-        });
-            const tab = getEl(tabId);
-        if (tab) tab.classList.toggle('tab-error', tieneError);
+        } else if (campo && campo.disabled) {
+            campo.classList.remove('campo-error');
+        }
+    });
+
+    // 2. Colorear pestañas automáticamente si contienen algún campo con error en su interior
+    document.querySelectorAll('.tab-content').forEach(tabContent => {
+        const tieneError = tabContent.querySelectorAll('.campo-error').length > 0;
+        const tabId = tabContent.id + '-tab';
+        const tabButton = getEl(tabId);
+        if (tabButton) {
+            tabButton.classList.toggle('tab-error', tieneError);
+        }
     });
 }
 
@@ -715,11 +720,6 @@ function loadSampleData() {
     });
 }
 
-function marcarError(campoId, tieneError) {
-    const campo = getEl(campoId);
-    if (campo) campo.classList.toggle('campo-error', tieneError);
-}
-
 function validarTodosCampos() {
     let camposVacios = [];
     AppState.primeraValidacion = true; // Activa el chequeo "en directo"
@@ -727,17 +727,12 @@ function validarTodosCampos() {
     fieldIds.forEach(campoId => {
         const campo = getEl(campoId);
         // Omitir validación de campos bloqueados
-        if (campo && campo.disabled) {
-            marcarError(campoId, false);
-        } else if (!campo || !campo.value || campo.value.trim() === '') { 
+        if (campo && !campo.disabled && (!campo.value || campo.value.trim() === '')) { 
             camposVacios.push(campoId); 
-            marcarError(campoId, true); 
-        } else { 
-            marcarError(campoId, false); 
         }
     });
     
-    // Dispara el pintado rojo de las pestañas
+    // Dispara el pintado rojo general (cajas y pestañas)
     actualizarMarcadoresEnTiempoReal();
     
     return camposVacios; // Devolvemos la lista para la alerta
@@ -769,7 +764,7 @@ function getFormData() {
         if (input) {
             let value = input.value;
             if (['fecha_nacimiento', 'fecha_analitica', 'sexo'].includes(fieldId)) { data[fieldId] = value; return; }
-            if (value) value = value.replace(/,/g, '.'); // ✅ flag global: reemplaza todas las comas
+            if (value) value = value.replace(/,/g, '.').replace(/[<>]/g, ''); // ✅ Reemplaza comas por puntos y limpia los símbolos
             const numValue = parseFloat(value);
             data[fieldId] = isNaN(numValue) ? 0 : numValue;
         }
@@ -794,6 +789,15 @@ function calculateResults() {
     const ecoDer = getEl('rinon_derecho_mm')?.value.trim();
     
     if (camposLlenos === 0 && !ecoIzq && !ecoDer) {
+        // Coloreamos todo de rojo y lanzamos el aviso en lugar de abortar en silencio
+        AppState.primeraValidacion = true;
+        actualizarMarcadoresEnTiempoReal();
+        Swal.fire({
+            icon: 'error',
+            title: 'Faltan datos',
+            text: 'No se ha introducido ningún dato. Rellena al menos un parámetro clínico para poder calcular los resultados.',
+            confirmButtonColor: '#ef4444'
+        });
         return; // Fin de la función, la página no se altera
     }
 
@@ -828,21 +832,47 @@ function calculateResults() {
     // 3. Si hay datos y las fechas tienen sentido lógico, validamos qué falta
     const camposVacios = validarTodosCampos();
 
-    // Si faltan datos, lanzamos la alerta interactiva
-    if (camposVacios.length > 0) {
-        let listaHTML = '<ul style="text-align: left; max-height: 180px; overflow-y: auto; margin-top: 15px; margin-bottom: 15px; font-size: 14px; color: var(--color-text-secondary); background: var(--color-bg-1); padding: 15px 15px 15px 35px; border-radius: 8px;">';
+    // NUEVO: Verificamos si hay símbolos < o >
+    const camposConSimbolos = fieldIds.filter(id => {
+        const el = getEl(id);
+        return el && !el.disabled && el.value && (el.value.includes('<') || el.value.includes('>'));
+    });
+
+    // Si faltan datos o hay símbolos, lanzamos la alerta interactiva
+    if (camposVacios.length > 0 || camposConSimbolos.length > 0) {
+        let htmlMsg = '';
         
-        camposVacios.forEach(id => {
-            const label = document.querySelector(`label[for="${id}"]`);
-            const nombreCampo = label ? label.textContent.split(' (')[0] : id;
-            listaHTML += `<li style="margin-bottom: 5px;"><strong>${nombreCampo}</strong></li>`;
-        });
-        listaHTML += '</ul>';
+        if (camposVacios.length > 0) {
+            let listaVaciosHTML = '<ul style="text-align: left; max-height: 120px; overflow-y: auto; margin-top: 10px; margin-bottom: 15px; font-size: 14px; color: var(--color-text-secondary); background: var(--color-bg-1); padding: 10px 15px 10px 35px; border-radius: 8px;">';
+            camposVacios.forEach(id => {
+                const label = document.querySelector(`label[for="${id}"]`);
+                const nombreCampo = label ? label.textContent.split(' (')[0] : id;
+                listaVaciosHTML += `<li style="margin-bottom: 5px;"><strong>${nombreCampo}</strong></li>`;
+            });
+            listaVaciosHTML += '</ul>';
+            htmlMsg += `Se han detectado <strong>campos en blanco</strong> que limitarán los cálculos:<br>${listaVaciosHTML}`;
+        }
+
+        if (camposConSimbolos.length > 0) {
+            let listaSimbolosHTML = '<ul style="text-align: left; max-height: 120px; overflow-y: auto; margin-top: 10px; margin-bottom: 15px; font-size: 14px; color: #854d0e; background: #fef3c7; padding: 10px 15px 10px 35px; border-radius: 8px;">';
+            camposConSimbolos.forEach(id => {
+                const label = document.querySelector(`label[for="${id}"]`);
+                const nombreCampo = label ? label.textContent.split(' (')[0] : id;
+                const valor = getEl(id).value;
+                let valEscaped = valor.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                listaSimbolosHTML += `<li style="margin-bottom: 5px;"><strong>${nombreCampo}</strong>: ${valEscaped}</li>`;
+            });
+            listaSimbolosHTML += '</ul>';
+            let marginStr = camposVacios.length > 0 ? 'margin-top: 20px;' : '';
+            htmlMsg += `<div style="${marginStr}">Se han detectado <strong>valores con &lt; o &gt;</strong>. Los cálculos se realizarán extrayendo únicamente su valor numérico:<br>${listaSimbolosHTML}</div>`;
+        }
+
+        htmlMsg += '<div style="margin-top: 15px;">¿Desea continuar con los cálculos?</div>';
 
         Swal.fire({
             icon: 'warning',
-            title: 'Faltan datos por rellenar',
-            html: `Se han detectado campos en blanco que limitarán los cálculos:<br>${listaHTML}¿Desea continuar y calcular lo que sea posible con los datos actuales?`,
+            title: 'Aviso de datos',
+            html: htmlMsg,
             showCancelButton: true,
             confirmButtonColor: '#0891b2', 
             cancelButtonColor: '#ef4444', 
@@ -921,8 +951,9 @@ function displayResults() {
         const evaluacion = evaluarRango(key, valor, edad, edadMeses);
         if (!evaluacion.enRango) {
             const tipoFuera = evaluacion.tipo === 'alto' ? 'por encima de rango' : 'por debajo de rango';
+            const labelConUnidad = param.unit && !param.label.includes(param.unit) ? ` (${param.unit})` : '';
             AppState.valoresFueraRango.push(
-    `${param.label}${param.unit ? ` (${param.unit})` : ''}: ${valor.toFixed(2)}${param.unit || ''} ${tipoFuera} (VN ${evaluacion.rangoTexto})`);
+    `${param.label}${labelConUnidad}: ${valor.toFixed(2)}${param.unit || ''} ${tipoFuera} (VN ${evaluacion.rangoTexto})`);
 
         }
     }
@@ -937,7 +968,8 @@ function displayResults() {
         const valor = results[key];
         if (valor && valor !== 0) {
             const p = PARAMETROS[key];
-            const label = p ? `${p.label}${p.unit ? ' (' + p.unit + ')' : ''}` : key;
+            const labelConUnidad = p && p.unit && !p.label.includes(p.unit) ? ` (${p.unit})` : '';
+            const label = p ? `${p.label}${labelConUnidad}` : key;
 
                 let numValue = key === 'densidad' ? parseFloat(valor).toFixed(0) : (typeof valor === 'number' ? valor.toFixed(2) : '0.00');
                 
